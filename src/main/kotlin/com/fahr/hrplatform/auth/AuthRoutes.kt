@@ -2,6 +2,7 @@ package com.fahr.hrplatform.auth
 
 import com.fahr.hrplatform.models.UserDTO
 import com.fahr.hrplatform.repository.UserRepository
+import com.fahr.hrplatform.security.JwtConfig
 import com.fahr.hrplatform.utils.PasswordHasher
 import io.ktor.http.*
 import io.ktor.server.application.*

@@ -1,8 +1,11 @@
 package com.fahr.hrplatform
 
 import com.fahr.hrplatform.auth.authRoutes
-import com.fahr.hrplatform.auth.configureSecurity
+import com.fahr.hrplatform.config.DatabaseFactory
+
 import com.fahr.hrplatform.routes.*
+import com.fahr.hrplatform.security.JwtConfig
+import com.fahr.hrplatform.security.configureSecurity
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.netty.EngineMain
@@ -13,9 +16,12 @@ fun main(args: Array<String>) {
 }
 
 fun Application.module() {
-    DatabaseFactory.init()
-    install(Authentication) { configureSecurity() }
+    configureSecurity()
+    DatabaseFactory.init(environment.config)
     configureSerialization()
+
+
+
 
     routing {
         authRoutes()
