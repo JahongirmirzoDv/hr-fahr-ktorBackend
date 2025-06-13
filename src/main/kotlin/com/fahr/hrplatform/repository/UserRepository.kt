@@ -30,8 +30,8 @@ class UserRepository {
             email = email,
             passwordHash = passwordHash,
             role = role,
-            createdAt = now,
-            updatedAt = now
+            createdAt = now.toString(),
+            updatedAt = now.toString()
         )
     }
 
@@ -58,8 +58,8 @@ class UserRepository {
             email = row[UserTable.email],
             passwordHash = row[UserTable.passwordHash],
             role = row[UserTable.role],
-            createdAt = row[UserTable.createdAt],
-            updatedAt = row[UserTable.updatedAt]
+            createdAt = row[UserTable.createdAt].toString(),
+            updatedAt = row[UserTable.updatedAt].toString()
         )
     }
 }

@@ -1,9 +1,10 @@
 package com.fahr.hrplatform.models
 
-import org.jetbrains.exposed.dao.id.IntIdTable
+import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.dao.id.UUIDTable
 import org.jetbrains.exposed.sql.javatime.datetime
 import java.time.LocalDateTime
+
 
 object UserTable : UUIDTable("users") {
     val fullName = varchar("full_name", 255)
@@ -14,16 +15,18 @@ object UserTable : UUIDTable("users") {
     val updatedAt = datetime("updated_at").default(LocalDateTime.now())
 }
 
+@Serializable
 data class User(
     val id: String,
     val fullName: String,
     val email: String,
     val passwordHash: String,
     val role: String,
-    val createdAt: LocalDateTime,
-    val updatedAt: LocalDateTime
+    val createdAt: String,
+    val updatedAt: String
 )
 
+@Serializable
 data class UserDTO(
     val fullName: String,
     val email: String,

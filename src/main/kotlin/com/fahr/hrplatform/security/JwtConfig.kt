@@ -27,7 +27,7 @@ object JwtConfig {
 
 fun Application.configureSecurity() {
     authentication {
-        jwt {
+        jwt("auth-jwt") { // Name the provider "auth-jwt"
             realm = "Access to HR Platform"
             verifier(
                 JWT.require(Algorithm.HMAC256("your_secret_key_here"))
