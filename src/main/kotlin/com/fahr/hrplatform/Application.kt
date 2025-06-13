@@ -52,5 +52,6 @@ fun Application.module() {
         attendanceRoutes()
         salaryRoutes()
         projectRoutes()
+        reportRoutes()
     }
 }

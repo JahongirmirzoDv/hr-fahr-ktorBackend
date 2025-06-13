@@ -10,7 +10,7 @@ object UserTable : UUIDTable("users") {
     val fullName = varchar("full_name", 255)
     val email = varchar("email", 255).uniqueIndex()
     val passwordHash = varchar("password_hash", 255)
-    val role = varchar("role", 50) // admin, manager, employee
+    val role = varchar("role", 50) // admin, manager, accountant, employee
     val createdAt = datetime("created_at").default(LocalDateTime.now())
     val updatedAt = datetime("updated_at").default(LocalDateTime.now())
 }
