@@ -1,0 +1,12 @@
+ktor:
+  application:
+    modules:
+      - com.fahr.hrplatform.ApplicationKt.module
+  deployment:
+    port: ${?PORT:-8080}
+  security:
+    jwt:
+      secret: "your_secret_key_here"
+      issuer: "com.fahr.hrplatform"
+      audience: "com.fahr.hrplatform.users"
+      realm: "Access to HR Platform"
