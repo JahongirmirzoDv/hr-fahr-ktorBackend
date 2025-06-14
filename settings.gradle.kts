@@ -1,1 +1,2 @@
 rootProject.name = "hr-fahr-ktorBackend"
+
