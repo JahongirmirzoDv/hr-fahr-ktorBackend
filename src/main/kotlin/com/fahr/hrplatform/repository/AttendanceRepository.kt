@@ -2,12 +2,16 @@ package com.fahr.hrplatform.repository
 
 import com.fahr.hrplatform.config.DatabaseFactory.dbQuery
 import com.fahr.hrplatform.models.Attendance
+import com.fahr.hrplatform.models.AttendanceEntity
 import com.fahr.hrplatform.models.AttendanceTable
+import com.fahr.hrplatform.models.CheckInRequestDTO
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 import java.util.*
 
 class AttendanceRepository {
@@ -55,19 +59,23 @@ class AttendanceRepository {
     }
 
     suspend fun findByEmployeeAndDate(employeeId: String, date: LocalDate): Attendance? = dbQuery {
-        AttendanceTable.select { 
+        AttendanceTable.select {
             (AttendanceTable.employeeId eq UUID.fromString(employeeId)) and
-            (AttendanceTable.date eq date)
+                    (AttendanceTable.date eq date)
         }
             .mapNotNull { toAttendance(it) }
             .singleOrNull()
     }
 
-    suspend fun findByEmployeeAndDateRange(employeeId: String, startDate: LocalDate, endDate: LocalDate): List<Attendance> = dbQuery {
-        AttendanceTable.select { 
+    suspend fun findByEmployeeAndDateRange(
+        employeeId: String,
+        startDate: LocalDate,
+        endDate: LocalDate
+    ): List<Attendance> = dbQuery {
+        AttendanceTable.select {
             (AttendanceTable.employeeId eq UUID.fromString(employeeId)) and
-            (AttendanceTable.date greaterEq startDate) and
-            (AttendanceTable.date lessEq endDate)
+                    (AttendanceTable.date greaterEq startDate) and
+                    (AttendanceTable.date lessEq endDate)
         }
             .map { toAttendance(it) }
     }
@@ -89,4 +97,24 @@ class AttendanceRepository {
             updatedAt = row[AttendanceTable.updatedAt]
         )
     }
+
+    private val attendances = mutableListOf<CheckInRequestDTO>()
+
+    fun save(dto: CheckInRequestDTO) {
+            transaction {
+                AttendanceEntity.insert {
+                    it[id] = UUID.randomUUID()
+                    it[employeeId] = dto.employeeId
+                    it[checkInTime] = dto.checkInTime
+                    it[gpsLat] = dto.gpsLat
+                    it[gpsLng] = dto.gpsLng
+                    it[nfcCardId] = dto.nfcCardId
+                    it[photoFileName] = dto.photoFileName
+                    it[createdAt] = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                }
+            }
+    }
+
+    fun getAll() = attendances
+
 }

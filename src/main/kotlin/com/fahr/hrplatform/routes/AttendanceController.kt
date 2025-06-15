@@ -1,16 +1,22 @@
 package com.fahr.hrplatform.routes
 
 import com.fahr.hrplatform.models.AttendanceDTO
+import com.fahr.hrplatform.models.CheckInRequestDTO
 import com.fahr.hrplatform.repository.AttendanceRepository
 import com.fahr.hrplatform.repository.EmployeeRepository
 import com.fahr.hrplatform.repository.UserRepository
 import io.ktor.http.*
+import io.ktor.http.content.PartData
+import io.ktor.http.content.forEachPart
+import io.ktor.http.content.streamProvider
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.serialization.json.Json
+import java.io.File
 import java.time.LocalDate
 
 fun Route.attendanceRoutes() {
@@ -127,6 +133,43 @@ fun Route.attendanceRoutes() {
                     call.respond(attendanceRecords)
                 }
             }
+
+            post("/attendance/check-in") {
+                val multipart = call.receiveMultipart()
+                val dto: CheckInRequestDTO? = null
+                var photoFileName: String? = null
+
+                multipart.forEachPart { part ->
+                    when (part) {
+                        is PartData.FormItem -> {
+                            if (part.name == "data") {
+                                val dto = Json.decodeFromString<CheckInRequestDTO>(part.value)
+                            }
+                        }
+                        is PartData.FileItem -> {
+                            if (part.name == "photo") {
+                                val bytes = part.streamProvider().readBytes()
+                                val filename = "selfie_${System.currentTimeMillis()}.jpg"
+                                val file = File("uploads/$filename")
+                                file.writeBytes(bytes)
+                                photoFileName = file.name
+                            }
+                        }
+                        else -> part.dispose()
+                    }
+                }
+
+                if (dto == null) {
+                    call.respond(HttpStatusCode.BadRequest, "Missing attendance data")
+                    return@post
+                }
+
+                val attendanceRepository = AttendanceRepository()
+                val finalDto = dto.copy(photoFileName = photoFileName)
+                attendanceRepository.save(finalDto) // bu sizda hali yozilmagan bo'lishi mumkin
+                call.respond(HttpStatusCode.OK, "Check-in successful")
+            }
         }
+
     }
 }
