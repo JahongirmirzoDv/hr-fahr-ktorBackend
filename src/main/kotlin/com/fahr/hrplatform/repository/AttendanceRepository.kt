@@ -113,6 +113,11 @@ class AttendanceRepository {
                     it[createdAt] = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
                 }
             }
+        AuditLogRepository.log(
+            action = "CHECK_IN",
+            actorId = dto.employeeId,
+            details = "Check-in from NFC: ${dto.nfcCardId} at ${dto.checkInTime}"
+        )
     }
 
     fun getAll() = attendances

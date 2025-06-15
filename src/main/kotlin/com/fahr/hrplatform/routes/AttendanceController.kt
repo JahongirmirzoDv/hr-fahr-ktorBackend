@@ -2,6 +2,7 @@ package com.fahr.hrplatform.routes
 
 import com.fahr.hrplatform.models.AttendanceDTO
 import com.fahr.hrplatform.models.CheckInRequestDTO
+import com.fahr.hrplatform.models.isValid
 import com.fahr.hrplatform.repository.AttendanceRepository
 import com.fahr.hrplatform.repository.EmployeeRepository
 import com.fahr.hrplatform.repository.UserRepository
@@ -161,6 +162,11 @@ fun Route.attendanceRoutes() {
 
                 if (dto == null) {
                     call.respond(HttpStatusCode.BadRequest, "Missing attendance data")
+                    return@post
+                }
+
+                if (dto.isValid()) {
+                    call.respond(HttpStatusCode.BadRequest, "Invalid input")
                     return@post
                 }
 

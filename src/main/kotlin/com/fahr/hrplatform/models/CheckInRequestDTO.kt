@@ -15,3 +15,11 @@ data class CheckInRequestDTO(
 enum class AttendanceStatus {
     PENDING, APPROVED, REJECTED
 }
+
+fun CheckInRequestDTO.isValid(): Boolean {
+    return employeeId.toString().isNotBlank() &&
+            checkInTime.isNotBlank() &&
+            nfcCardId.isNotBlank() &&
+            gpsLat in -90.0..90.0 &&
+            gpsLng in -180.0..180.0
+}

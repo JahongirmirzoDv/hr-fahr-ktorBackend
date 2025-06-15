@@ -2,6 +2,7 @@ package com.fahr.hrplatform
 
 import com.fahr.hrplatform.auth.authRoutes
 import com.fahr.hrplatform.config.DatabaseFactory
+import com.fahr.hrplatform.models.AttendanceEntity
 import com.fahr.hrplatform.models.AttendanceTable
 import com.fahr.hrplatform.models.EmployeeTable
 import com.fahr.hrplatform.models.ProjectAssignmentTable
@@ -22,6 +23,7 @@ import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
+import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -50,7 +52,8 @@ fun Application.module() {
             ProjectTable,
             ProjectAssignmentTable,
             AttendanceTable,
-            SalaryRecordTable
+            SalaryRecordTable,
+            AttendanceEntity
         )
     }
 
@@ -81,12 +84,20 @@ fun Application.module() {
 
 
     routing {
+        route("/admin"){
+            userRoutes()
+            salaryRoutes()
+            projectRoutes()
+            reportRoutes()
+            attendanceRoutes()
+            employeeRoutes()
+        }
+        route("/manager"){
+            employeeRoutes()
+            attendanceRoutes()
+        }
+
         authRoutes()
-        userRoutes()
-        employeeRoutes()
-        attendanceRoutes()
-        salaryRoutes()
-        projectRoutes()
-        reportRoutes()
+
     }
 }
