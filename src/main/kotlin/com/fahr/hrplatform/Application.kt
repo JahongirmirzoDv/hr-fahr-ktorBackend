@@ -17,14 +17,21 @@ import io.ktor.server.auth.*
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.EngineMain
 import io.ktor.server.netty.Netty
+import io.ktor.server.response.respondText
+import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.transactions.transaction
 
 fun main(args: Array<String>) {
     //EngineMain.main(args)
-    embeddedServer(Netty, port = 8080, host = "0.0.0.0", module = Application::module)
-        .start(wait = true)
+    embeddedServer(Netty, port = 8080, host = "0.0.0.0") {
+        routing {
+            get("/") {
+                call.respondText("Hello, world!")
+            }
+        }
+    }.start(wait = true)
 }
 
 fun Application.module() {

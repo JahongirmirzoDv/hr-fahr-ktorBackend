@@ -10,4 +10,5 @@ fun Application.configureRouting() {
             call.respondText("HR Platform API running...")
         }
     }
+
 }

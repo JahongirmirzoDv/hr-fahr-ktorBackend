@@ -1,6 +1,6 @@
-val koin_version: String by project
-val kotlin_version: String by project
-val logback_version: String by project
+val koinVersion: String by project
+val kotlinVersion: String by project
+val logbackVersion: String by project
 
 plugins {
     kotlin("jvm") version "1.9.10"
@@ -25,25 +25,24 @@ repositories {
 
 dependencies {
 
-    val exposedVersion: String  = "0.50.1"
-    implementation("io.ktor:ktor-server-core:2.3.4")
-    implementation("io.ktor:ktor-server-auth:2.3.4")
-    implementation("io.ktor:ktor-server-auth-jwt:2.3.4")
-    implementation("io.ktor:ktor-server-content-negotiation:2.3.4")
-    implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.4")
-    implementation("io.insert-koin:koin-ktor:$koin_version")
-    implementation("io.insert-koin:koin-logger-slf4j:$koin_version")
-    implementation("io.ktor:ktor-server-netty:2.3.4")
-    implementation("ch.qos.logback:logback-classic:$logback_version")
-    implementation("io.ktor:ktor-server-config-yaml:2.3.4")
-    // Commented out due to incompatibility with Kotlin 1.9.10
-    // implementation("io.github.flaxoos:ktor-server-kafka:2.2.1")
+    val exposedVersion = "0.50.1"
+    val ktorVersion = "2.3.4"
+    implementation("io.ktor:ktor-server-core:$ktorVersion")
+    implementation("io.ktor:ktor-server-auth:$ktorVersion")
+    implementation("io.ktor:ktor-server-auth-jwt:$ktorVersion")
+    implementation("io.ktor:ktor-server-content-negotiation:$ktorVersion")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
+    implementation("io.insert-koin:koin-ktor:$koinVersion")
+    implementation("io.insert-koin:koin-logger-slf4j:$koinVersion")
+    implementation("io.ktor:ktor-server-netty:$ktorVersion")
+    implementation("ch.qos.logback:logback-classic:$logbackVersion")
+    implementation("io.ktor:ktor-server-config-yaml:$ktorVersion")
     implementation("com.zaxxer:HikariCP:6.3.0")
-    testImplementation("io.ktor:ktor-server-test-host:2.3.4")
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
+    testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion")
 
 
-
+    implementation("io.ktor:ktor-server-status-pages-jvm:${ktorVersion}")
 
 
     implementation("org.jetbrains.exposed:exposed-core:${exposedVersion}")

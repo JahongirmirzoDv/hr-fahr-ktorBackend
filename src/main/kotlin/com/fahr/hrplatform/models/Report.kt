@@ -1,6 +1,5 @@
 package com.fahr.hrplatform.models
 
-import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateSerializer
 import kotlinx.serialization.Serializable
 import java.time.LocalDate
 

@@ -1,0 +1,11 @@
+### Login Request to your Ktor Backend
+# @name login
+POST http://localhost:8080/auth/login
+Content-Type: application/json
+
+{
+  "email": "jahongir@example.com",
+  "password": "secret123"
+}
+
+###

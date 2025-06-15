@@ -9,6 +9,7 @@ import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.serialization.Serializable
 
 fun Route.authRoutes() {
     route("/auth") {
@@ -36,9 +37,8 @@ fun Route.authRoutes() {
 
             call.respond(HttpStatusCode.Created, mapOf("userId" to user.id))
         }
-
         post("/login") {
-            data class LoginRequest(val email: String, val password: String)
+
             val loginRequest = call.receive<LoginRequest>()
 
             val userRepository = UserRepository()
