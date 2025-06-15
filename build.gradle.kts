@@ -44,6 +44,10 @@ dependencies {
 
     implementation("io.ktor:ktor-server-status-pages-jvm:${ktorVersion}")
 
+//    implementation(platform("org.jetbrains.kotlinx:kotlinx-serialization-bom:$kotlinVersion"))
+//    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0") // Or use "1.6.3"
+
 
     implementation("org.jetbrains.exposed:exposed-core:${exposedVersion}")
     implementation("org.jetbrains.exposed:exposed-dao:${exposedVersion}")
