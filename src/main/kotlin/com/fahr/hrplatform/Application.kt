@@ -12,11 +12,14 @@ import com.fahr.hrplatform.models.UserTable
 import com.fahr.hrplatform.routes.*
 import com.fahr.hrplatform.security.JwtConfig
 import com.fahr.hrplatform.security.configureSecurity
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpMethod
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.EngineMain
 import io.ktor.server.netty.Netty
+import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
@@ -49,6 +52,31 @@ fun Application.module() {
             AttendanceTable,
             SalaryRecordTable
         )
+    }
+
+    install(CORS) {
+        // This allows your frontend running on localhost:8081 to make requests
+        allowHost("localhost:8081")
+
+        // You can also use allowHost("your-domain.com") in production
+
+        // Allow common methods
+        allowMethod(HttpMethod.Options)
+        allowMethod(HttpMethod.Get)
+        allowMethod(HttpMethod.Post)
+        allowMethod(HttpMethod.Put)
+        allowMethod(HttpMethod.Delete)
+        allowMethod(HttpMethod.Patch)
+
+        // Allow essential headers
+        allowHeader(HttpHeaders.Authorization)
+        allowHeader(HttpHeaders.ContentType)
+
+        // You can add any other custom headers your frontend sends
+        // allowHeader("My-Custom-Header")
+
+        // If your frontend needs to send credentials like cookies
+        // allowCredentials = true
     }
 
 
