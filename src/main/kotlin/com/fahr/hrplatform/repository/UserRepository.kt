@@ -10,12 +10,12 @@ import java.util.*
 
 class UserRepository {
 
-    suspend fun create(fullName: String, email: String, passwordHash: String, role: String): User = dbQuery {
-        val id = UUID.randomUUID().toString()
+    suspend fun create(fullName: String, email: String, passwordHash: String, role: String): User? = dbQuery {
+        val id = UUID.randomUUID()
         val now = LocalDateTime.now()
 
         UserTable.insert {
-            it[UserTable.id] = UUID.fromString(id)
+            it[UserTable.id] = id
             it[UserTable.fullName] = fullName
             it[UserTable.email] = email
             it[UserTable.passwordHash] = passwordHash
@@ -24,15 +24,7 @@ class UserRepository {
             it[updatedAt] = now
         }
 
-        User(
-            id = id,
-            fullName = fullName,
-            email = email,
-            passwordHash = passwordHash,
-            role = role,
-            createdAt = now.toString(),
-            updatedAt = now.toString()
-        )
+        findById(id.toString())
     }
 
     suspend fun findByEmail(email: String): User? = dbQuery {

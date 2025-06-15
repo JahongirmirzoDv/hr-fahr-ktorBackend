@@ -18,12 +18,12 @@ class ProjectAssignmentRepository {
         assignmentDate: LocalDate = LocalDate.now(),
         endDate: LocalDate? = null,
         isActive: Boolean = true
-    ): ProjectAssignment = dbQuery {
-        val id = UUID.randomUUID().toString()
+    ): ProjectAssignment? = dbQuery {
+        val id = UUID.randomUUID()
         val now = LocalDateTime.now()
 
         ProjectAssignmentTable.insert {
-            it[ProjectAssignmentTable.id] = UUID.fromString(id)
+            it[ProjectAssignmentTable.id] = id
             it[ProjectAssignmentTable.projectId] = UUID.fromString(projectId)
             it[ProjectAssignmentTable.employeeId] = UUID.fromString(employeeId)
             it[ProjectAssignmentTable.role] = role
@@ -33,18 +33,7 @@ class ProjectAssignmentRepository {
             it[createdAt] = now
             it[updatedAt] = now
         }
-
-        ProjectAssignment(
-            id = id,
-            projectId = projectId,
-            employeeId = employeeId,
-            role = role,
-            assignmentDate = assignmentDate,
-            endDate = endDate,
-            isActive = isActive,
-            createdAt = now,
-            updatedAt = now
-        )
+        findById(id.toString())
     }
 
     suspend fun findById(id: String): ProjectAssignment? = dbQuery {
@@ -64,9 +53,9 @@ class ProjectAssignmentRepository {
     }
 
     suspend fun findActiveByEmployee(employeeId: String): List<ProjectAssignment> = dbQuery {
-        ProjectAssignmentTable.select { 
+        ProjectAssignmentTable.select {
             (ProjectAssignmentTable.employeeId eq UUID.fromString(employeeId)) and
-            (ProjectAssignmentTable.isActive eq true)
+                    (ProjectAssignmentTable.isActive eq true)
         }
             .map { toProjectAssignment(it) }
     }

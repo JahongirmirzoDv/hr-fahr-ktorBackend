@@ -21,12 +21,12 @@ class SalaryRepository {
         netAmount: Double,
         paymentStatus: String = "PENDING",
         paymentDate: LocalDate? = null
-    ): SalaryRecord = dbQuery {
-        val id = UUID.randomUUID().toString()
+    ): SalaryRecord? = dbQuery {
+        val id = UUID.randomUUID()
         val now = LocalDateTime.now()
 
         SalaryRecordTable.insert {
-            it[SalaryRecordTable.id] = UUID.fromString(id)
+            it[SalaryRecordTable.id] = id
             it[SalaryRecordTable.employeeId] = UUID.fromString(employeeId)
             it[SalaryRecordTable.periodStart] = periodStart
             it[SalaryRecordTable.periodEnd] = periodEnd
@@ -39,21 +39,7 @@ class SalaryRepository {
             it[createdAt] = now
             it[updatedAt] = now
         }
-
-        SalaryRecord(
-            id = id,
-            employeeId = employeeId,
-            periodStart = periodStart,
-            periodEnd = periodEnd,
-            baseAmount = baseAmount,
-            bonus = bonus,
-            deductions = deductions,
-            netAmount = netAmount,
-            paymentStatus = paymentStatus,
-            paymentDate = paymentDate,
-            createdAt = now,
-            updatedAt = now
-        )
+        findById(id.toString())
     }
 
     suspend fun findById(id: String): SalaryRecord? = dbQuery {
@@ -63,10 +49,10 @@ class SalaryRepository {
     }
 
     suspend fun findByEmployeeAndPeriod(employeeId: String, periodStart: LocalDate, periodEnd: LocalDate): SalaryRecord? = dbQuery {
-        SalaryRecordTable.select { 
+        SalaryRecordTable.select {
             (SalaryRecordTable.employeeId eq UUID.fromString(employeeId)) and
-            (SalaryRecordTable.periodStart eq periodStart) and
-            (SalaryRecordTable.periodEnd eq periodEnd)
+                    (SalaryRecordTable.periodStart eq periodStart) and
+                    (SalaryRecordTable.periodEnd eq periodEnd)
         }
             .mapNotNull { toSalaryRecord(it) }
             .singleOrNull()

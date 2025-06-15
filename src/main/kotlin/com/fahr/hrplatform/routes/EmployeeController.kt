@@ -1,6 +1,9 @@
 package com.fahr.hrplatform.routes
 
 import com.fahr.hrplatform.models.EmployeeDTO
+import com.fahr.hrplatform.models.Role
+import com.fahr.hrplatform.models.UserPrincipal
+import com.fahr.hrplatform.models.requireRole
 import com.fahr.hrplatform.repository.EmployeeRepository
 import com.fahr.hrplatform.repository.UserRepository
 import io.ktor.http.*
@@ -10,9 +13,13 @@ import io.ktor.server.auth.jwt.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import org.koin.ktor.ext.inject
 import java.time.LocalDateTime
 
 fun Route.employeeRoutes() {
+    val employeeRepository: EmployeeRepository by inject()
+    val userRepository: UserRepository by inject()
+
     authenticate("auth-jwt") {
         route("/employees") {
             post {
@@ -24,13 +31,11 @@ fun Route.employeeRoutes() {
                 }
 
                 val employeeDTO = call.receive<EmployeeDTO>()
-                val userRepository = UserRepository()
                 if (userRepository.findById(employeeDTO.userId) == null) {
                     call.respond(HttpStatusCode.BadRequest, mapOf("error" to "User not found"))
                     return@post
                 }
 
-                val employeeRepository = EmployeeRepository()
                 if (employeeRepository.findByUserId(employeeDTO.userId) != null) {
                     call.respond(HttpStatusCode.Conflict, mapOf("error" to "Employee record already exists for this user"))
                     return@post
@@ -45,7 +50,7 @@ fun Route.employeeRoutes() {
                     salaryAmount = employeeDTO.salaryAmount,
                     isActive = employeeDTO.isActive
                 )
-                call.respond(HttpStatusCode.Created, employee)
+                call.respond(HttpStatusCode.Created, employee.toString())
             }
 
             get {
@@ -55,8 +60,6 @@ fun Route.employeeRoutes() {
                     return@get
                 }
 
-                val employeeRepository = EmployeeRepository()
-                val userRepository = UserRepository()
                 val employees = employeeRepository.findAll().map { employee ->
                     val user = userRepository.findById(employee.userId)
                     mapOf(
@@ -79,7 +82,6 @@ fun Route.employeeRoutes() {
                 val id = call.parameters["id"] ?: return@get call.respond(HttpStatusCode.BadRequest, "Missing id")
                 val principal = call.principal<UserPrincipal>()!!
 
-                val employeeRepository = EmployeeRepository()
                 val employee = employeeRepository.findById(id) ?: return@get call.respond(HttpStatusCode.NotFound)
 
                 // Admin/Manager can view any employee.
@@ -88,7 +90,6 @@ fun Route.employeeRoutes() {
                     return@get
                 }
 
-                val userRepository = UserRepository()
                 val user = userRepository.findById(employee.userId)
 
                 call.respond(mapOf(
@@ -103,6 +104,34 @@ fun Route.employeeRoutes() {
                     "salaryAmount" to employee.salaryAmount,
                     "isActive" to employee.isActive
                 ))
+            }
+
+            // New function to get employees by department
+            get("/department/{departmentName}") {
+                val departmentName = call.parameters["departmentName"] ?: return@get call.respond(HttpStatusCode.BadRequest, "Missing department name")
+                val principal = call.principal<UserPrincipal>()!!
+
+                if (!principal.requireRole(Role.ADMIN, Role.MANAGER)) {
+                    call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Admin or Manager role required"))
+                    return@get
+                }
+
+                val employees = employeeRepository.findByDepartment(departmentName).map { employee ->
+                    val user = userRepository.findById(employee.userId)
+                    mapOf(
+                        "id" to employee.id,
+                        "userId" to employee.userId,
+                        "fullName" to (user?.fullName ?: ""),
+                        "email" to (user?.email ?: ""),
+                        "position" to employee.position,
+                        "department" to employee.department,
+                        "hireDate" to employee.hireDate.toString(),
+                        "salaryType" to employee.salaryType,
+                        "salaryAmount" to employee.salaryAmount,
+                        "isActive" to employee.isActive
+                    )
+                }
+                call.respond(employees)
             }
         }
     }

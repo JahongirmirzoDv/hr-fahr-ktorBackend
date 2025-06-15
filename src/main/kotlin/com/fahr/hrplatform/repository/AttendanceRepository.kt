@@ -6,7 +6,6 @@ import com.fahr.hrplatform.models.AttendanceEntity
 import com.fahr.hrplatform.models.AttendanceTable
 import com.fahr.hrplatform.models.CheckInRequestDTO
 import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -23,12 +22,12 @@ class AttendanceRepository {
         checkOut: LocalTime?,
         status: String,
         notes: String?
-    ): Attendance = dbQuery {
-        val id = UUID.randomUUID().toString()
+    ): Attendance? = dbQuery {
+        val id = UUID.randomUUID()
         val now = LocalDateTime.now()
 
         AttendanceTable.insert {
-            it[AttendanceTable.id] = UUID.fromString(id)
+            it[AttendanceTable.id] = id
             it[AttendanceTable.employeeId] = UUID.fromString(employeeId)
             it[AttendanceTable.date] = date
             it[AttendanceTable.checkIn] = checkIn
@@ -38,18 +37,15 @@ class AttendanceRepository {
             it[createdAt] = now
             it[updatedAt] = now
         }
+        findById(id.toString())
+    }
 
-        Attendance(
-            id = id,
-            employeeId = employeeId,
-            date = date,
-            checkIn = checkIn,
-            checkOut = checkOut,
-            status = status,
-            notes = notes,
-            createdAt = now,
-            updatedAt = now
-        )
+    suspend fun checkOut(id: String, checkOutTime: LocalTime): Attendance? = dbQuery {
+        AttendanceTable.update({ AttendanceTable.id eq UUID.fromString(id) }) {
+            it[checkOut] = checkOutTime
+            it[updatedAt] = LocalDateTime.now()
+        }
+        findById(id)
     }
 
     suspend fun findById(id: String): Attendance? = dbQuery {
@@ -101,18 +97,18 @@ class AttendanceRepository {
     private val attendances = mutableListOf<CheckInRequestDTO>()
 
     fun save(dto: CheckInRequestDTO) {
-            transaction {
-                AttendanceEntity.insert {
-                    it[id] = UUID.randomUUID()
-                    it[employeeId] = dto.employeeId
-                    it[checkInTime] = dto.checkInTime
-                    it[gpsLat] = dto.gpsLat
-                    it[gpsLng] = dto.gpsLng
-                    it[nfcCardId] = dto.nfcCardId
-                    it[photoFileName] = dto.photoFileName
-                    it[createdAt] = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-                }
+        transaction {
+            AttendanceEntity.insert {
+                it[id] = UUID.randomUUID()
+                it[employeeId] = dto.employeeId
+                it[checkInTime] = dto.checkInTime
+                it[gpsLat] = dto.gpsLat
+                it[gpsLng] = dto.gpsLng
+                it[nfcCardId] = dto.nfcCardId
+                it[photoFileName] = dto.photoFileName
+                it[createdAt] = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
             }
+        }
         AuditLogRepository.log(
             action = "CHECK_IN",
             actorId = dto.employeeId,

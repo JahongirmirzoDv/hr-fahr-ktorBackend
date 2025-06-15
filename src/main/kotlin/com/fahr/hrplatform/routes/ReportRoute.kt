@@ -11,10 +11,13 @@ import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import org.koin.ktor.ext.inject
 import java.time.LocalDate
 import java.time.YearMonth
 
 fun Route.reportRoutes() {
+    val reportRepository: ReportRepository by inject()
+
     authenticate("auth-jwt") {
         route("/reports") {
             get("/monthly") {
@@ -32,7 +35,6 @@ fun Route.reportRoutes() {
                 val startDate = yearMonth.atDay(1)
                 val endDate = yearMonth.atEndOfMonth()
 
-                val reportRepository = ReportRepository()
                 val summaries = reportRepository.getMonthlySummary(startDate, endDate)
 
                 val report = MonthlyReport(

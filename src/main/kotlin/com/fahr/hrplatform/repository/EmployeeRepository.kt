@@ -17,12 +17,12 @@ class EmployeeRepository {
         salaryType: SalaryType,
         salaryAmount: Double,
         isActive: Boolean = true
-    ): Employee = dbQuery {
-        val id = UUID.randomUUID().toString()
+    ): Employee? = dbQuery {
+        val id = UUID.randomUUID()
         val now = LocalDateTime.now()
 
         EmployeeTable.insert {
-            it[EmployeeTable.id] = UUID.fromString(id)
+            it[EmployeeTable.id] = id
             it[EmployeeTable.userId] = UUID.fromString(userId)
             it[EmployeeTable.position] = position
             it[EmployeeTable.department] = department
@@ -33,19 +33,7 @@ class EmployeeRepository {
             it[createdAt] = now
             it[updatedAt] = now
         }
-
-        Employee(
-            id = id,
-            userId = userId,
-            position = position,
-            department = department,
-            hireDate = hireDate,
-            salaryType = salaryType,
-            salaryAmount = salaryAmount,
-            isActive = isActive,
-            createdAt = now,
-            updatedAt = now
-        )
+        findById(id.toString())
     }
 
     suspend fun findById(id: String): Employee? = dbQuery {
@@ -58,6 +46,11 @@ class EmployeeRepository {
         EmployeeTable.select { EmployeeTable.userId eq UUID.fromString(userId) }
             .mapNotNull { toEmployee(it) }
             .singleOrNull()
+    }
+
+    suspend fun findByDepartment(department: String): List<Employee> = dbQuery {
+        EmployeeTable.select { EmployeeTable.department eq department }
+            .map { toEmployee(it) }
     }
 
     suspend fun findAll(): List<Employee> = dbQuery {

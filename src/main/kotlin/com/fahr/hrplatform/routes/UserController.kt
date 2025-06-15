@@ -1,5 +1,8 @@
 package com.fahr.hrplatform.routes
 
+import com.fahr.hrplatform.models.Role
+import com.fahr.hrplatform.models.UserPrincipal
+import com.fahr.hrplatform.models.requireRole
 import com.fahr.hrplatform.repository.UserRepository
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -7,20 +10,20 @@ import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import org.koin.ktor.ext.inject
 
 fun Route.userRoutes() {
+    val userRepository: UserRepository by inject()
+
     authenticate("auth-jwt") {
         route("/users") {
             get {
-                val principal = call.principal<JWTPrincipal>()
-                val role = principal?.payload?.getClaim("role")?.asString() ?: ""
-
-                if (role != "admin") {
+                val principal = call.principal<UserPrincipal>()
+                if (principal == null || !principal.requireRole(Role.ADMIN)) {
                     call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Only admins can access this resource"))
                     return@get
                 }
 
-                val userRepository = UserRepository()
                 val users = userRepository.findAll().map {
                     mapOf(
                         "id" to it.id,
@@ -34,9 +37,9 @@ fun Route.userRoutes() {
             }
 
             get("/{id}") {
-                val principal = call.principal<JWTPrincipal>()
-                val role = principal?.payload?.getClaim("role")?.asString() ?: ""
-                val userEmail = principal?.payload?.getClaim("email")?.asString() ?: ""
+                val principal = call.principal<UserPrincipal>()
+                val role = principal?.role
+                val userEmail = principal?.email
 
                 val id = call.parameters["id"]
                 if (id == null) {
@@ -44,7 +47,6 @@ fun Route.userRoutes() {
                     return@get
                 }
 
-                val userRepository = UserRepository()
                 val user = userRepository.findById(id)
 
                 if (user == null) {
@@ -53,7 +55,7 @@ fun Route.userRoutes() {
                 }
 
                 // Check if the user is requesting their own data or is an admin
-                if (role != "admin" && userEmail != user.email) {
+                if (role != Role.ADMIN && userEmail != user.email) {
                     call.respond(HttpStatusCode.Forbidden, mapOf("error" to "You can only access your own user information"))
                     return@get
                 }

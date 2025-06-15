@@ -34,7 +34,11 @@ fun Route.authRoutes() {
                 userDTO.role
             )
 
-            call.respond(HttpStatusCode.Created, RegisterResponse(userId = user.id))
+            if (user != null) {
+                call.respond(HttpStatusCode.Created, RegisterResponse(userId = user.id))
+            } else {
+                call.respond(HttpStatusCode.InternalServerError, ErrorResponse("Failed to create user"))
+            }
         }
 
         post("/login") {

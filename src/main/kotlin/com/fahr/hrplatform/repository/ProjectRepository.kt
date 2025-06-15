@@ -18,12 +18,12 @@ class ProjectRepository {
         endDate: LocalDate?,
         status: String = "ACTIVE",
         budget: Double?
-    ): Project = dbQuery {
-        val id = UUID.randomUUID().toString()
+    ): Project? = dbQuery {
+        val id = UUID.randomUUID()
         val now = LocalDateTime.now()
 
         ProjectTable.insert {
-            it[ProjectTable.id] = UUID.fromString(id)
+            it[ProjectTable.id] = id
             it[ProjectTable.name] = name
             it[ProjectTable.description] = description
             it[ProjectTable.startDate] = startDate
@@ -33,18 +33,7 @@ class ProjectRepository {
             it[createdAt] = now
             it[updatedAt] = now
         }
-
-        Project(
-            id = id,
-            name = name,
-            description = description,
-            startDate = startDate,
-            endDate = endDate,
-            status = status,
-            budget = budget,
-            createdAt = now,
-            updatedAt = now
-        )
+        findById(id.toString())
     }
 
     suspend fun findById(id: String): Project? = dbQuery {

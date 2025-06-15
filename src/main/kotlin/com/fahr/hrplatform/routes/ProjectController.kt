@@ -12,8 +12,13 @@ import io.ktor.server.auth.jwt.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import org.koin.ktor.ext.inject
 
 fun Route.projectRoutes() {
+    val projectRepository: ProjectRepository by inject()
+    val employeeRepository: EmployeeRepository by inject()
+    val projectAssignmentRepository: ProjectAssignmentRepository by inject()
+
     authenticate("auth-jwt") {
         route("/projects") {
             post {
@@ -26,7 +31,6 @@ fun Route.projectRoutes() {
                 }
 
                 val projectDTO = call.receive<ProjectDTO>()
-                val projectRepository = ProjectRepository()
 
                 val project = projectRepository.create(
                     name = projectDTO.name,
@@ -37,13 +41,12 @@ fun Route.projectRoutes() {
                     budget = projectDTO.budget
                 )
 
-                call.respond(HttpStatusCode.Created, project)
+                call.respond(HttpStatusCode.Created, project.toString())
             }
 
             get {
                 val status = call.request.queryParameters["status"]
 
-                val projectRepository = ProjectRepository()
                 val projects = if (status != null) {
                     projectRepository.findByStatus(status)
                 } else {
@@ -60,13 +63,25 @@ fun Route.projectRoutes() {
                     return@get
                 }
 
-                val projectRepository = ProjectRepository()
                 val project = projectRepository.findById(id) ?: run {
                     call.respond(HttpStatusCode.NotFound, mapOf("error" to "Project not found"))
                     return@get
                 }
 
                 call.respond(project)
+            }
+
+            get("/employee/{employeeId}") {
+                val employeeId = call.parameters["employeeId"]
+                if (employeeId == null) {
+                    call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Missing employeeId parameter"))
+                    return@get
+                }
+
+                val assignments = projectAssignmentRepository.findByEmployee(employeeId)
+                val projects = assignments.mapNotNull { projectRepository.findById(it.projectId) }
+
+                call.respond(projects)
             }
 
             // Project assignments endpoints
@@ -86,7 +101,6 @@ fun Route.projectRoutes() {
                 }
 
                 // Verify project exists
-                val projectRepository = ProjectRepository()
                 val project = projectRepository.findById(projectId) ?: run {
                     call.respond(HttpStatusCode.NotFound, mapOf("error" to "Project not found"))
                     return@post
@@ -95,13 +109,10 @@ fun Route.projectRoutes() {
                 val assignmentDTO = call.receive<ProjectAssignmentDTO>()
 
                 // Verify employee exists
-                val employeeRepository = EmployeeRepository()
                 val employee = employeeRepository.findById(assignmentDTO.employeeId) ?: run {
                     call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Employee not found"))
                     return@post
                 }
-
-                val projectAssignmentRepository = ProjectAssignmentRepository()
 
                 val assignment = projectAssignmentRepository.create(
                     projectId = projectId,
@@ -112,7 +123,7 @@ fun Route.projectRoutes() {
                     isActive = assignmentDTO.isActive
                 )
 
-                call.respond(HttpStatusCode.Created, assignment)
+                call.respond(HttpStatusCode.Created, assignment.toString())
             }
 
             get("/{id}/assignments") {
@@ -123,13 +134,11 @@ fun Route.projectRoutes() {
                 }
 
                 // Verify project exists
-                val projectRepository = ProjectRepository()
                 val project = projectRepository.findById(projectId) ?: run {
                     call.respond(HttpStatusCode.NotFound, mapOf("error" to "Project not found"))
                     return@get
                 }
 
-                val projectAssignmentRepository = ProjectAssignmentRepository()
                 val assignments = projectAssignmentRepository.findByProject(projectId)
 
                 call.respond(assignments)

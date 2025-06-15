@@ -2,6 +2,7 @@ package com.fahr.hrplatform
 
 import com.fahr.hrplatform.auth.authRoutes
 import com.fahr.hrplatform.config.DatabaseFactory
+import com.fahr.hrplatform.config.appModule
 import com.fahr.hrplatform.models.*
 import com.fahr.hrplatform.repository.AttendanceRepository
 import com.fahr.hrplatform.repository.EmployeeRepository
@@ -25,20 +26,22 @@ import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.koin.core.context.GlobalContext.startKoin
 import java.time.LocalDate
 
 fun main(args: Array<String>) {
     //EngineMain.main(args)
-    embeddedServer(Netty, port = 8080, host = "0.0.0.0") {
-        routing {
-            get("/") {
-                call.respondText("Hello, world!")
-            }
-        }
-    }.start(wait = true)
+//    embeddedServer(Netty, port = 8080, host = "0.0.0.0") {
+//    }.start(wait = true)
+    embeddedServer(Netty, port = 8080, host = "0.0.0.0", module = Application::module)
+        .start(wait = true)
 }
 
 fun Application.module() {
+    startKoin {
+        modules(appModule)
+    }
+
     configureSecurity()
     DatabaseFactory.init(environment.config)
     configureSerialization()
