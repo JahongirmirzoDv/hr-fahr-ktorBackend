@@ -47,7 +47,8 @@ fun Route.authRoutes() {
                 return@post
             }
 
-            val token = JwtConfig.generateToken(user.email, user.role)
+            // Modified to pass the full user object
+            val token = JwtConfig.generateToken(user)
             val userResponse = UserResponse(
                 id = user.id,
                 fullName = user.fullName,

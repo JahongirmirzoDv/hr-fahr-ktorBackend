@@ -16,67 +16,47 @@ fun Route.employeeRoutes() {
     authenticate("auth-jwt") {
         route("/employees") {
             post {
-                val principal = call.principal<JWTPrincipal>()
-                val role = principal?.payload?.getClaim("role")?.asString() ?: ""
-
-                if (role != "admin" && role != "manager") {
-                    call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Only admins and managers can create employees"))
+                val principal = call.principal<UserPrincipal>()
+                // As per your request, only ADMIN can create/update employees
+                if (principal == null || !principal.requireRole(Role.ADMIN)) {
+                    call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Admin role required"))
                     return@post
                 }
 
                 val employeeDTO = call.receive<EmployeeDTO>()
-
-                // Validate that the user exists
                 val userRepository = UserRepository()
-                val user = userRepository.findById(employeeDTO.userId)
-                if (user == null) {
+                if (userRepository.findById(employeeDTO.userId) == null) {
                     call.respond(HttpStatusCode.BadRequest, mapOf("error" to "User not found"))
                     return@post
                 }
 
                 val employeeRepository = EmployeeRepository()
-
-                // Check if employee already exists for this user
-                val existingEmployee = employeeRepository.findByUserId(employeeDTO.userId)
-                if (existingEmployee != null) {
+                if (employeeRepository.findByUserId(employeeDTO.userId) != null) {
                     call.respond(HttpStatusCode.Conflict, mapOf("error" to "Employee record already exists for this user"))
                     return@post
                 }
-
-                val hireDate = employeeDTO.hireDate ?: LocalDateTime.now()
 
                 val employee = employeeRepository.create(
                     userId = employeeDTO.userId,
                     position = employeeDTO.position,
                     department = employeeDTO.department,
-                    hireDate = hireDate,
+                    hireDate = employeeDTO.hireDate ?: LocalDateTime.now(),
                     salaryType = employeeDTO.salaryType,
                     salaryAmount = employeeDTO.salaryAmount,
                     isActive = employeeDTO.isActive
                 )
-
-                call.respond(HttpStatusCode.Created, mapOf(
-                    "id" to employee.id,
-                    "userId" to employee.userId,
-                    "position" to employee.position,
-                    "department" to employee.department,
-                    "salaryType" to employee.salaryType,
-                    "salaryAmount" to employee.salaryAmount
-                ))
+                call.respond(HttpStatusCode.Created, employee)
             }
 
             get {
-                val principal = call.principal<JWTPrincipal>()
-                val role = principal?.payload?.getClaim("role")?.asString() ?: ""
-
-                if (role != "admin" && role != "manager") {
-                    call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Only admins and managers can view all employees"))
+                val principal = call.principal<UserPrincipal>()
+                if (principal == null || !principal.requireRole(Role.ADMIN, Role.MANAGER)) {
+                    call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Admin or Manager role required"))
                     return@get
                 }
 
                 val employeeRepository = EmployeeRepository()
                 val userRepository = UserRepository()
-
                 val employees = employeeRepository.findAll().map { employee ->
                     val user = userRepository.findById(employee.userId)
                     mapOf(
@@ -86,43 +66,30 @@ fun Route.employeeRoutes() {
                         "email" to (user?.email ?: ""),
                         "position" to employee.position,
                         "department" to employee.department,
-                        "hireDate" to employee.hireDate,
+                        "hireDate" to employee.hireDate.toString(),
                         "salaryType" to employee.salaryType,
                         "salaryAmount" to employee.salaryAmount,
                         "isActive" to employee.isActive
                     )
                 }
-
                 call.respond(employees)
             }
 
             get("/{id}") {
-                val id = call.parameters["id"]
-                if (id == null) {
-                    call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Missing id parameter"))
-                    return@get
-                }
-
-                val principal = call.principal<JWTPrincipal>()
-                val role = principal?.payload?.getClaim("role")?.asString() ?: ""
-                val userEmail = principal?.payload?.getClaim("email")?.asString() ?: ""
+                val id = call.parameters["id"] ?: return@get call.respond(HttpStatusCode.BadRequest, "Missing id")
+                val principal = call.principal<UserPrincipal>()!!
 
                 val employeeRepository = EmployeeRepository()
-                val employee = employeeRepository.findById(id)
+                val employee = employeeRepository.findById(id) ?: return@get call.respond(HttpStatusCode.NotFound)
 
-                if (employee == null) {
-                    call.respond(HttpStatusCode.NotFound, mapOf("error" to "Employee not found"))
+                // Admin/Manager can view any employee.
+                if (!principal.requireRole(Role.ADMIN, Role.MANAGER)) {
+                    call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Admin or Manager role required"))
                     return@get
                 }
 
                 val userRepository = UserRepository()
                 val user = userRepository.findById(employee.userId)
-
-                // Check if the user is requesting their own data or is an admin/manager
-                if (role == "employee" && userEmail != (user?.email ?: "")) {
-                    call.respond(HttpStatusCode.Forbidden, mapOf("error" to "You can only access your own employee information"))
-                    return@get
-                }
 
                 call.respond(mapOf(
                     "id" to employee.id,
@@ -131,7 +98,7 @@ fun Route.employeeRoutes() {
                     "email" to (user?.email ?: ""),
                     "position" to employee.position,
                     "department" to employee.department,
-                    "hireDate" to employee.hireDate,
+                    "hireDate" to employee.hireDate.toString(),
                     "salaryType" to employee.salaryType,
                     "salaryAmount" to employee.salaryAmount,
                     "isActive" to employee.isActive

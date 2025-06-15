@@ -2,6 +2,9 @@ package com.fahr.hrplatform.security
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
+import com.fahr.hrplatform.models.Role
+import com.fahr.hrplatform.models.User
+import com.fahr.hrplatform.models.UserPrincipal
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
@@ -16,11 +19,13 @@ object JwtConfig {
     private const val audience = "com.fahr.hrplatform.users"
     private val algorithm = Algorithm.HMAC256(secret)
 
-    fun generateToken(email: String, role: String): String = JWT.create()
+    // Modified to accept User object and include userId
+    fun generateToken(user: User): String = JWT.create()
         .withIssuer(issuer)
         .withAudience(audience)
-        .withClaim("email", email)
-        .withClaim("role", role)
+        .withClaim("userId", user.id) // Added userId claim
+        .withClaim("email", user.email)
+        .withClaim("role", user.role)
         .withExpiresAt(Date(System.currentTimeMillis() + validityInMs))
         .sign(algorithm)
 }
@@ -35,10 +40,26 @@ fun Application.configureSecurity() {
                     .withAudience("com.fahr.hrplatform.users")
                     .build()
             )
+            // Modified to validate and build a UserPrincipal
             validate { credential ->
-                if (credential.payload.getClaim("email").asString() != "") {
-                    JWTPrincipal(credential.payload)
-                } else null
+                val userId = credential.payload.getClaim("userId").asString()
+                val email = credential.payload.getClaim("email").asString()
+                val roleString = credential.payload.getClaim("role").asString()
+
+                if (userId != null && email != null && roleString != null) {
+                    try {
+                        UserPrincipal(
+                            userId = UUID.fromString(userId),
+                            email = email,
+                            role = Role.valueOf(roleString.uppercase())
+                        )
+                    } catch (e: IllegalArgumentException) {
+                        // Invalid role
+                        null
+                    }
+                } else {
+                    null
+                }
             }
         }
     }
