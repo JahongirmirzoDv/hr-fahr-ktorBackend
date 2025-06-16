@@ -3,10 +3,9 @@ package com.fahr.hrplatform.repository
 import com.fahr.hrplatform.config.DatabaseFactory.dbQuery
 import com.fahr.hrplatform.models.SalaryRecord
 import com.fahr.hrplatform.models.SalaryRecordTable
+import com.fahr.hrplatform.utils.DateUtil
+import kotlinx.datetime.LocalDate
 import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import java.time.LocalDate
-import java.time.LocalDateTime
 import java.util.*
 
 class SalaryRepository {
@@ -23,7 +22,7 @@ class SalaryRepository {
         paymentDate: LocalDate? = null
     ): SalaryRecord? = dbQuery {
         val id = UUID.randomUUID()
-        val now = LocalDateTime.now()
+        val now = DateUtil.datetimeInUtc
 
         SalaryRecordTable.insert {
             it[SalaryRecordTable.id] = id

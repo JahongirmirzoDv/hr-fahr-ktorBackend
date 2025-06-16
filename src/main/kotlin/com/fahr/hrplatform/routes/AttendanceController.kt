@@ -8,6 +8,7 @@ import com.fahr.hrplatform.models.isValid
 import com.fahr.hrplatform.models.requireRole
 import com.fahr.hrplatform.repository.AttendanceRepository
 import com.fahr.hrplatform.repository.EmployeeRepository
+import com.fahr.hrplatform.utils.DateUtil
 import io.ktor.http.*
 import io.ktor.http.content.PartData
 import io.ktor.http.content.forEachPart
@@ -17,15 +18,14 @@ import io.ktor.server.auth.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 import kotlinx.datetime.serializers.LocalDateTimeComponentSerializer
 import kotlinx.datetime.serializers.LocalTimeComponentSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.koin.ktor.ext.inject
 import java.io.File
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.LocalTime
 
 fun Route.attendanceRoutes() {
     val attendanceRepository: AttendanceRepository by inject()
@@ -77,7 +77,8 @@ fun Route.attendanceRoutes() {
                     if (startDate != null && endDate != null) {
                         attendanceRepository.findByEmployeeAndDateRange(employeeId, startDate, endDate)
                     } else {
-                        attendanceRepository.findByEmployeeAndDateRange(employeeId, LocalDate.now().withDayOfMonth(1), LocalDate.now())
+                        attendanceRepository.findByEmployeeAndDateRange(employeeId, DateUtil.firstDayOfCurrentMonth,
+                            DateUtil.dateInUtc)
                     }
                 } else {
                     attendanceRepository.findAll()
@@ -142,7 +143,7 @@ fun Route.attendanceRoutes() {
                     return@post
                 }
                 val request = call.receive<CheckOutRequest>()
-                val attendance = attendanceRepository.findByEmployeeAndDate(request.employeeId, LocalDate.now())
+                val attendance = attendanceRepository.findByEmployeeAndDate(request.employeeId, DateUtil.dateInUtc)
 
                 if (attendance == null) {
                     call.respond(HttpStatusCode.BadRequest, "No active check-in found for today")

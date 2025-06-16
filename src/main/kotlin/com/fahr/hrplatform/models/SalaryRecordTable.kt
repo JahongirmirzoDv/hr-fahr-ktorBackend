@@ -1,11 +1,12 @@
 package com.fahr.hrplatform.models
 
+import com.fahr.hrplatform.utils.DateUtil
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
 import org.jetbrains.exposed.dao.id.UUIDTable
 import org.jetbrains.exposed.sql.ReferenceOption
-import org.jetbrains.exposed.sql.javatime.date
-import org.jetbrains.exposed.sql.javatime.datetime
-import java.time.LocalDate
-import java.time.LocalDateTime
+import org.jetbrains.exposed.sql.kotlin.datetime.date
+import org.jetbrains.exposed.sql.kotlin.datetime.datetime
 
 object SalaryRecordTable : UUIDTable("salary_records") {
     val employeeId = reference("employee_id", EmployeeTable, onDelete = ReferenceOption.CASCADE)
@@ -17,8 +18,8 @@ object SalaryRecordTable : UUIDTable("salary_records") {
     val netAmount = double("net_amount")
     val paymentStatus = varchar("payment_status", 20).default("PENDING") // PENDING, PAID, CANCELLED
     val paymentDate = date("payment_date").nullable()
-    val createdAt = datetime("created_at").default(LocalDateTime.now())
-    val updatedAt = datetime("updated_at").default(LocalDateTime.now())
+    val createdAt = datetime("created_at").default(DateUtil.datetimeInUtc)
+    val updatedAt = datetime("updated_at").default(DateUtil.datetimeInUtc)
 }
 
 data class SalaryRecord(

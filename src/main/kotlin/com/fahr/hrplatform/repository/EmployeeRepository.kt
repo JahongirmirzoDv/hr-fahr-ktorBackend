@@ -2,9 +2,10 @@ package com.fahr.hrplatform.repository
 
 import com.fahr.hrplatform.config.DatabaseFactory.dbQuery
 import com.fahr.hrplatform.models.*
+import com.fahr.hrplatform.utils.DateUtil
+import kotlinx.datetime.LocalDateTime
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import java.time.LocalDateTime
 import java.util.*
 
 class EmployeeRepository {
@@ -19,7 +20,7 @@ class EmployeeRepository {
         isActive: Boolean = true
     ): Employee? = dbQuery {
         val id = UUID.randomUUID()
-        val now = LocalDateTime.now()
+        val now = DateUtil.datetimeInUtc
 
         EmployeeTable.insert {
             it[EmployeeTable.id] = id

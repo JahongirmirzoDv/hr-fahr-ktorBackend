@@ -2,9 +2,13 @@ package com.fahr.hrplatform.routes
 
 import com.fahr.hrplatform.models.ProjectDTO
 import com.fahr.hrplatform.models.ProjectAssignmentDTO
+import com.fahr.hrplatform.models.Role
+import com.fahr.hrplatform.models.UserPrincipal
+import com.fahr.hrplatform.models.requireRole
 import com.fahr.hrplatform.repository.EmployeeRepository
 import com.fahr.hrplatform.repository.ProjectAssignmentRepository
 import com.fahr.hrplatform.repository.ProjectRepository
+import com.fahr.hrplatform.utils.DateUtil
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -12,6 +16,7 @@ import io.ktor.server.auth.jwt.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.datetime.DateTimePeriod
 import org.koin.ktor.ext.inject
 
 fun Route.projectRoutes() {
@@ -22,10 +27,9 @@ fun Route.projectRoutes() {
     authenticate("auth-jwt") {
         route("/projects") {
             post {
-                val principal = call.principal<JWTPrincipal>()
-                val role = principal?.payload?.getClaim("role")?.asString() ?: ""
+                val principal = call.principal<UserPrincipal>()
 
-                if (role != "admin" && role != "manager") {
+                if (principal == null || !principal.requireRole(Role.ADMIN, Role.MANAGER)) {
                     call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Only admins and managers can create projects"))
                     return@post
                 }
@@ -38,7 +42,10 @@ fun Route.projectRoutes() {
                     startDate = projectDTO.startDate,
                     endDate = projectDTO.endDate,
                     status = projectDTO.status,
-                    budget = projectDTO.budget
+                    budget = projectDTO.budget,
+                    managerId = projectDTO.managerId,
+                    employeeIds = projectDTO.employeeIds,
+                    location = projectDTO.location
                 )
 
                 call.respond(HttpStatusCode.Created, project.toString())
@@ -118,7 +125,7 @@ fun Route.projectRoutes() {
                     projectId = projectId,
                     employeeId = assignmentDTO.employeeId,
                     role = assignmentDTO.role,
-                    assignmentDate = assignmentDTO.assignmentDate ?: java.time.LocalDate.now(),
+                    assignmentDate = assignmentDTO.assignmentDate ?: DateUtil.dateInUtc,
                     endDate = assignmentDTO.endDate,
                     isActive = assignmentDTO.isActive
                 )

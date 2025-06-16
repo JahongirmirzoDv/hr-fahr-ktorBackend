@@ -6,6 +6,7 @@ import com.fahr.hrplatform.models.UserPrincipal
 import com.fahr.hrplatform.models.requireRole
 import com.fahr.hrplatform.repository.EmployeeRepository
 import com.fahr.hrplatform.repository.UserRepository
+import com.fahr.hrplatform.utils.DateUtil
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -45,7 +46,7 @@ fun Route.employeeRoutes() {
                     userId = employeeDTO.userId,
                     position = employeeDTO.position,
                     department = employeeDTO.department,
-                    hireDate = employeeDTO.hireDate ?: LocalDateTime.now(),
+                    hireDate = employeeDTO.hireDate ?: DateUtil.datetimeInUtc,
                     salaryType = employeeDTO.salaryType,
                     salaryAmount = employeeDTO.salaryAmount,
                     isActive = employeeDTO.isActive

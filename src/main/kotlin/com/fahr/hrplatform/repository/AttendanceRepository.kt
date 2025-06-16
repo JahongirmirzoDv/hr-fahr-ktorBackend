@@ -5,12 +5,11 @@ import com.fahr.hrplatform.models.Attendance
 import com.fahr.hrplatform.models.AttendanceEntity
 import com.fahr.hrplatform.models.AttendanceTable
 import com.fahr.hrplatform.models.CheckInRequestDTO
+import com.fahr.hrplatform.utils.DateUtil
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.LocalTime
-import java.time.format.DateTimeFormatter
 import java.util.*
 
 class AttendanceRepository {
@@ -24,7 +23,7 @@ class AttendanceRepository {
         notes: String?
     ): Attendance? = dbQuery {
         val id = UUID.randomUUID()
-        val now = LocalDateTime.now()
+        val now = DateUtil.datetimeInUtc
 
         AttendanceTable.insert {
             it[AttendanceTable.id] = id
@@ -43,7 +42,7 @@ class AttendanceRepository {
     suspend fun checkOut(id: String, checkOutTime: LocalTime): Attendance? = dbQuery {
         AttendanceTable.update({ AttendanceTable.id eq UUID.fromString(id) }) {
             it[checkOut] = checkOutTime
-            it[updatedAt] = LocalDateTime.now()
+            it[updatedAt] = DateUtil.datetimeInUtc
         }
         findById(id)
     }
@@ -106,7 +105,7 @@ class AttendanceRepository {
                 it[gpsLng] = dto.gpsLng
                 it[nfcCardId] = dto.nfcCardId
                 it[photoFileName] = dto.photoFileName
-                it[createdAt] = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                it[createdAt] = DateUtil.datetimeInUtc.toString()
             }
         }
         AuditLogRepository.log(

@@ -3,10 +3,9 @@ package com.fahr.hrplatform.repository
 import com.fahr.hrplatform.config.DatabaseFactory.dbQuery
 import com.fahr.hrplatform.models.ProjectAssignment
 import com.fahr.hrplatform.models.ProjectAssignmentTable
+import com.fahr.hrplatform.utils.DateUtil
+import kotlinx.datetime.LocalDate
 import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import java.time.LocalDate
-import java.time.LocalDateTime
 import java.util.*
 
 class ProjectAssignmentRepository {
@@ -15,12 +14,12 @@ class ProjectAssignmentRepository {
         projectId: String,
         employeeId: String,
         role: String,
-        assignmentDate: LocalDate = LocalDate.now(),
+        assignmentDate: LocalDate = DateUtil.dateInUtc,
         endDate: LocalDate? = null,
         isActive: Boolean = true
     ): ProjectAssignment? = dbQuery {
         val id = UUID.randomUUID()
-        val now = LocalDateTime.now()
+        val now = DateUtil.datetimeInUtc
 
         ProjectAssignmentTable.insert {
             it[ProjectAssignmentTable.id] = id

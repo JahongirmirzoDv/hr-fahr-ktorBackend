@@ -1,5 +1,6 @@
 package com.fahr.hrplatform
 
+
 import com.fahr.hrplatform.auth.authRoutes
 import com.fahr.hrplatform.config.DatabaseFactory
 import com.fahr.hrplatform.config.appModule
@@ -9,25 +10,18 @@ import com.fahr.hrplatform.repository.EmployeeRepository
 import com.fahr.hrplatform.repository.SalaryRepository
 import com.fahr.hrplatform.routes.*
 import com.fahr.hrplatform.security.configureSecurity
-import io.ktor.http.HttpHeaders
-import io.ktor.http.HttpMethod
-import io.ktor.http.HttpStatusCode
+import com.fahr.hrplatform.utils.DateUtil
+import io.ktor.http.*
 import io.ktor.server.application.*
-import io.ktor.server.auth.authenticate
-import io.ktor.server.auth.principal
-import io.ktor.server.engine.embeddedServer
-import io.ktor.server.netty.EngineMain
-import io.ktor.server.netty.Netty
-import io.ktor.server.plugins.cors.routing.CORS
-import io.ktor.server.response.respond
-import io.ktor.server.response.respondText
-import io.ktor.server.routing.get
-import io.ktor.server.routing.route
-import io.ktor.server.routing.routing
+import io.ktor.server.auth.*
+import io.ktor.server.engine.*
+import io.ktor.server.netty.*
+import io.ktor.server.plugins.cors.routing.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.koin.core.context.GlobalContext.startKoin
-import java.time.LocalDate
 
 fun main(args: Array<String>) {
     //EngineMain.main(args)
@@ -125,8 +119,8 @@ fun Application.module() {
                     val attendanceRepository = AttendanceRepository()
                     val records = attendanceRepository.findByEmployeeAndDateRange(
                         employee.id,
-                        LocalDate.now().withDayOfMonth(1), // Default to current month
-                        LocalDate.now()
+                        DateUtil.firstDayOfCurrentMonth, // Default to current month
+                        DateUtil.dateInUtc
                     )
                     call.respond(records)
                 }

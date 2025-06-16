@@ -4,8 +4,30 @@ POST http://localhost:8080/auth/login
 Content-Type: application/json
 
 {
-  "email": "jahongir@example.co",
+  "email": "jahongir@example.com",
   "password": "secret123"
 }
 
+> {%
+    // Assuming your server returns a JSON like { "token": "ey..." }
+    // Adjust `response.body.token` if your JSON field name is different
+    client.global.set("bearer_token", response.body.token);
+%}
 ###
+
+
+POST http://localhost:8080/admin/projects
+Content-Type: application/json
+Authorization: Bearer {{bearer_token}}
+
+{
+  "description": "desc",
+  "budget": "900",
+  "endDate": "2025-10-01",
+  "location": "tash",
+  "managerId": "0001",
+  "name": "eshonguzar",
+  "startDate": "2025-10-01",
+  "status": "ACTIVE",
+  "employeeIds": []
+}

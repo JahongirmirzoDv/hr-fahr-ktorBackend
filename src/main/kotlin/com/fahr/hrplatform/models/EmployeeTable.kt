@@ -1,9 +1,11 @@
 package com.fahr.hrplatform.models
 
+import com.fahr.hrplatform.utils.DateUtil
+import kotlinx.datetime.LocalDateTime
 import org.jetbrains.exposed.dao.id.UUIDTable
 import org.jetbrains.exposed.sql.ReferenceOption
-import org.jetbrains.exposed.sql.javatime.datetime
-import java.time.LocalDateTime
+import org.jetbrains.exposed.sql.kotlin.datetime.Date
+import org.jetbrains.exposed.sql.kotlin.datetime.datetime
 
 enum class SalaryType {
     MONTHLY, DAILY, HOURLY
@@ -13,12 +15,12 @@ object EmployeeTable : UUIDTable("employees") {
     val userId = reference("user_id", UserTable, onDelete = ReferenceOption.CASCADE)
     val position = varchar("position", 255)
     val department = varchar("department", 255)
-    val hireDate = datetime("hire_date").default(LocalDateTime.now())
+    val hireDate = datetime("hire_date").default(DateUtil.datetimeInUtc)
     val salaryType = varchar("salary_type", 20) // MONTHLY, DAILY, HOURLY
     val salaryAmount = double("salary_amount")
     val isActive = bool("is_active").default(true)
-    val createdAt = datetime("created_at").default(LocalDateTime.now())
-    val updatedAt = datetime("updated_at").default(LocalDateTime.now())
+    val createdAt = datetime("created_at").default(DateUtil.datetimeInUtc)
+    val updatedAt = datetime("updated_at").default(DateUtil.datetimeInUtc)
 }
 
 data class Employee(

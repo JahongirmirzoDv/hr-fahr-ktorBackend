@@ -3,10 +3,11 @@ package com.fahr.hrplatform.repository
 import com.fahr.hrplatform.config.DatabaseFactory.dbQuery
 import com.fahr.hrplatform.models.Project
 import com.fahr.hrplatform.models.ProjectTable
+import com.fahr.hrplatform.utils.DateUtil
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import java.time.LocalDate
-import java.time.LocalDateTime
 import java.util.*
 
 class ProjectRepository {
@@ -17,10 +18,13 @@ class ProjectRepository {
         startDate: LocalDate,
         endDate: LocalDate?,
         status: String = "ACTIVE",
-        budget: Double?
+        budget: Double?,
+        managerId: String?,
+        employeeIds: List<String>,
+        location: String? = null
     ): Project? = dbQuery {
         val id = UUID.randomUUID()
-        val now = LocalDateTime.now()
+        val now = DateUtil.datetimeInUtc
 
         ProjectTable.insert {
             it[ProjectTable.id] = id
@@ -32,6 +36,9 @@ class ProjectRepository {
             it[ProjectTable.budget] = budget
             it[createdAt] = now
             it[updatedAt] = now
+            it[ProjectTable.managerId] = managerId?.let { id -> UUID.fromString(id) }
+            it[ProjectTable.employeeIds] = employeeIds.joinToString(",")
+            it[ProjectTable.location] = location
         }
         findById(id.toString())
     }
@@ -61,7 +68,10 @@ class ProjectRepository {
             status = row[ProjectTable.status],
             budget = row[ProjectTable.budget],
             createdAt = row[ProjectTable.createdAt],
-            updatedAt = row[ProjectTable.updatedAt]
+            updatedAt = row[ProjectTable.updatedAt],
+            managerId = row[ProjectTable.managerId].toString(),
+            employeeIds = row[ProjectTable.employeeIds].split(",").map { it.trim() },
+            location = row[ProjectTable.location] ?: ""
         )
     }
 }

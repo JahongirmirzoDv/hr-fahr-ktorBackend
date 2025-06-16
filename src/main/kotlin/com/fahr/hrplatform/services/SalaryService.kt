@@ -20,7 +20,7 @@ class SalaryService(
         )
         val presentDays = attendanceRecords.count { it.status == "PRESENT" }
         val halfDays = attendanceRecords.count { it.status == "HALF_DAY" }
-        val totalDays = salaryCalcDTO.periodEnd.toEpochDay() - salaryCalcDTO.periodStart.toEpochDay() + 1
+        val totalDays = salaryCalcDTO.periodEnd.toEpochDays() - salaryCalcDTO.periodStart.toEpochDays() + 1
 
         val baseAmount = when (employee.salaryType) {
             SalaryType.MONTHLY -> employee.salaryAmount * (presentDays + (halfDays * 0.5)) / totalDays
