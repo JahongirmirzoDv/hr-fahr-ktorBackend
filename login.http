@@ -1,11 +1,23 @@
+# @register
+
+POST http://localhost:8080/auth/register
+Content-Type: application/json
+
+{
+  "fullName": "test",
+  "email": "test",
+  "password": "123",
+  "role": "admin"
+}
+
 ### Login Request to your Ktor Backend
 # @name login
 POST http://localhost:8080/auth/login
 Content-Type: application/json
 
 {
-  "email": "jahongir@example.com",
-  "password": "secret123"
+  "email": "test",
+  "password": "123"
 }
 
 > {%
@@ -27,9 +39,41 @@ Authorization: Bearer {{bearer_token}}
   "budget": 900,
   "endDate": "2025-10-01",
   "location": "tash",
-  "managerId": "f656652e-bb18-4841-9945-73636405238c",
+  "managerId": "2c06eab3-ba0a-4dd5-ae4d-21f49a4d8d94",
   "name": "eshonguzar",
   "startDate": "2025-10-01",
   "status": "ACTIVE",
   "employeeIds": []
 }
+
+###
+# @name getProjects
+GET http://localhost:8080/admin/projects
+Content-Type: application/json
+Authorization: Bearer {{bearer_token}}
+
+#####
+# @name create Employee
+POST http://localhost:8080/admin/employees
+Content-Type: application/json
+Authorization: Bearer {{bearer_token}}
+
+{
+  "name": "user",
+  "updatedAt": "2025-06-16T14:00:00",
+  "createdAt": "2025-06-16T14:00:00",
+  "department": "eshonguzar",
+  "hireDate": "2025-06-16T14:00:00",
+  "isActive": true,
+  "photoUrl": "url",
+  "position": "elektrik",
+  "salaryAmount": 500,
+  "salaryRate": 200,
+  "salaryType": "MONTHLY",
+  "userId": "2c06eab3-ba0a-4dd5-ae4d-21f49a4d8d94"
+}
+
+###
+GET http://localhost:8080/admin/employees
+Content-Type: application/json
+Authorization: Bearer {{bearer_token}}

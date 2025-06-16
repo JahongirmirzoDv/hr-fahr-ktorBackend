@@ -3,11 +3,13 @@ package com.fahr.hrplatform.models
 import com.fahr.hrplatform.utils.DateUtil
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
+import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.dao.id.UUIDTable
 import org.jetbrains.exposed.sql.ReferenceOption
 import org.jetbrains.exposed.sql.kotlin.datetime.Date
 import org.jetbrains.exposed.sql.kotlin.datetime.datetime
 
+@Serializable
 enum class SalaryType {
     MONTHLY, DAILY, HOURLY
 }
@@ -30,6 +32,7 @@ object EmployeeTable : UUIDTable("employees") {
     val updatedAt = datetime("updated_at").default(DateUtil.datetimeInUtc)
 }
 
+@Serializable
 data class Employee(
     val id: String,
     val name: String,
@@ -46,6 +49,7 @@ data class Employee(
     val isActive: Boolean
 )
 
+@Serializable
 data class EmployeeDTO(
     val name: String,
     val photoUrl: String? = null,

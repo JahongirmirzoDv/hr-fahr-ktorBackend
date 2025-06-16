@@ -30,6 +30,7 @@ object ProjectTable : UUIDTable("projects") {
 
 }
 
+@Serializable
 data class Project(
     val id: String,
     val name: String,
