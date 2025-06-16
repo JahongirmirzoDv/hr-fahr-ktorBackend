@@ -1,6 +1,7 @@
 package com.fahr.hrplatform.routes
 
 import com.fahr.hrplatform.models.EmployeeDTO
+import com.fahr.hrplatform.models.EmployeeResponse
 import com.fahr.hrplatform.models.Role
 import com.fahr.hrplatform.models.UserPrincipal
 import com.fahr.hrplatform.models.requireRole
@@ -66,17 +67,21 @@ fun Route.employeeRoutes() {
 
                 val employees = employeeRepository.findAll().map { employee ->
                     val user = userRepository.findById(employee.userId)
-                    mapOf(
-                        "id" to employee.id,
-                        "userId" to employee.userId,
-                        "fullName" to (user?.fullName ?: ""),
-                        "email" to (user?.email ?: ""),
-                        "position" to employee.position,
-                        "department" to employee.department,
-                        "hireDate" to employee.hireDate.toString(),
-                        "salaryType" to employee.salaryType,
-                        "salaryAmount" to employee.salaryAmount,
-                        "isActive" to employee.isActive
+                    EmployeeResponse(
+                        id = employee.id,
+                        userId = employee.userId,
+                        name = user?.fullName ?: "",
+                        email = user?.email ?: "",
+                        position = employee.position,
+                        department = employee.department,
+                        hireDate = employee.hireDate.toString(),
+                        salaryType = employee.salaryType,
+                        salaryAmount = employee.salaryAmount,
+                        salaryRate = employee.salaryRate,
+                        isActive = employee.isActive,
+                        createdAt = employee.createdAt,
+                        updatedAt = employee.updatedAt,
+                        photoUrl = employee.photoUrl
                     )
                 }
                 call.respond(employees)

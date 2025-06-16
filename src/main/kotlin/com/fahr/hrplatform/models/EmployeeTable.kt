@@ -65,3 +65,21 @@ data class EmployeeDTO(
     val isActive: Boolean = true
 
 )
+
+@Serializable
+data class EmployeeResponse(
+    val id: String,
+    val userId: String,
+    val name: String,
+    val email: String,
+    val position: String,
+    val department: String,
+    val hireDate: String,
+    val salaryType: SalaryType,
+    val salaryAmount: Double,
+    val isActive: Boolean,
+    val createdAt: LocalDateTime = DateUtil.datetimeInUtc,
+    val updatedAt: LocalDateTime = DateUtil.datetimeInUtc,
+    val photoUrl: String? = null,
+    val salaryRate: Double? = null
+)
