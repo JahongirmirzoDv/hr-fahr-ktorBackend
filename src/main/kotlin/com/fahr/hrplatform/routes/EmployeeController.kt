@@ -49,7 +49,10 @@ fun Route.employeeRoutes() {
                     hireDate = employeeDTO.hireDate ?: DateUtil.datetimeInUtc,
                     salaryType = employeeDTO.salaryType,
                     salaryAmount = employeeDTO.salaryAmount,
-                    isActive = employeeDTO.isActive
+                    isActive = employeeDTO.isActive,
+                    name = employeeDTO.name,
+                    photoUrl = employeeDTO.photoUrl ?: "",
+                    salaryRate = employeeDTO.salaryRate ?: 0.0
                 )
                 call.respond(HttpStatusCode.Created, employee.toString())
             }

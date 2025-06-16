@@ -1,6 +1,7 @@
 package com.fahr.hrplatform.models
 
 import com.fahr.hrplatform.utils.DateUtil
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import org.jetbrains.exposed.dao.id.UUIDTable
 import org.jetbrains.exposed.sql.ReferenceOption
@@ -13,6 +14,12 @@ enum class SalaryType {
 
 object EmployeeTable : UUIDTable("employees") {
     val userId = reference("user_id", UserTable, onDelete = ReferenceOption.CASCADE)
+
+    val name = varchar("name", 255)
+
+    val photoUrl = varchar("photo_url", 255)
+
+    val salaryRate = double("salary_rate").default(0.0)
     val position = varchar("position", 255)
     val department = varchar("department", 255)
     val hireDate = datetime("hire_date").default(DateUtil.datetimeInUtc)
@@ -25,23 +32,32 @@ object EmployeeTable : UUIDTable("employees") {
 
 data class Employee(
     val id: String,
-    val userId: String,
+    val name: String,
+    val photoUrl: String,
     val position: String,
-    val department: String,
-    val hireDate: LocalDateTime,
+    val salaryRate: Double,
     val salaryType: SalaryType,
     val salaryAmount: Double,
-    val isActive: Boolean,
+    val userId: String,
+    val department: String,
+    val hireDate: LocalDateTime,
     val createdAt: LocalDateTime,
-    val updatedAt: LocalDateTime
+    val updatedAt: LocalDateTime,
+    val isActive: Boolean
 )
 
 data class EmployeeDTO(
-    val userId: String,
+    val name: String,
+    val photoUrl: String? = null,
     val position: String,
-    val department: String,
-    val hireDate: LocalDateTime? = null,
+    val salaryRate: Double? = null,
     val salaryType: SalaryType,
     val salaryAmount: Double,
+    val userId: String,
+    val department: String,
+    val hireDate: LocalDateTime? = null,
+    val createdAt: LocalDateTime = DateUtil.datetimeInUtc,
+    val updatedAt: LocalDateTime = DateUtil.datetimeInUtc,
     val isActive: Boolean = true
+
 )

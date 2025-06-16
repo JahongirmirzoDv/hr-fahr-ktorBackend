@@ -15,17 +15,19 @@ Content-Type: application/json
 %}
 ###
 
-
+# @name project
 POST http://localhost:8080/admin/projects
 Content-Type: application/json
 Authorization: Bearer {{bearer_token}}
 
 {
   "description": "desc",
-  "budget": "900",
+  "updatedAt": "2025-06-16T14:00:00",
+  "createdAt": "2025-06-16T14:00:00",
+  "budget": 900,
   "endDate": "2025-10-01",
   "location": "tash",
-  "managerId": "0001",
+  "managerId": "f656652e-bb18-4841-9945-73636405238c",
   "name": "eshonguzar",
   "startDate": "2025-10-01",
   "status": "ACTIVE",

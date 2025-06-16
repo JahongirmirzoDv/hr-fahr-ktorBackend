@@ -33,28 +33,30 @@ object ProjectTable : UUIDTable("projects") {
 data class Project(
     val id: String,
     val name: String,
-    val description: String?,
+    val description: String,
+    val location: String,
     val startDate: LocalDate,
-    val endDate: LocalDate?,
-    val status: String,
-    val budget: Double?,
-    val createdAt: LocalDateTime,
-    val updatedAt: LocalDateTime,
+    val endDate: LocalDate,
     val managerId: String,
     val employeeIds: List<String>,
-    val location: String
+    val budget: Double,
+    val status: String,
+    val createdAt: LocalDateTime,
+    val updatedAt: LocalDateTime
 )
 
 
-//@Serializable
+@Serializable
 data class ProjectDTO(
     val name: String,
     val description: String? = null,
+    val location: String? = null,
     val startDate: LocalDate,
     val endDate: LocalDate? = null,
-    val status: String = "ACTIVE",
-    val budget: Double? = null,
     val managerId: String? = null,
     val employeeIds: List<String> = emptyList(),
-    val location: String? = null
+    val budget: Double? = null,
+    val status: String = "ACTIVE",
+    val createdAt: LocalDateTime = DateUtil.datetimeInUtc,
+    val updatedAt: LocalDateTime = DateUtil.datetimeInUtc
 )

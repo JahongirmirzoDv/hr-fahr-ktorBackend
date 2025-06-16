@@ -12,6 +12,9 @@ class EmployeeRepository {
 
     suspend fun create(
         userId: String,
+        name:String,
+        photoUrl:String,
+        salaryRate: Double,
         position: String,
         department: String,
         hireDate: LocalDateTime,
@@ -33,6 +36,9 @@ class EmployeeRepository {
             it[EmployeeTable.isActive] = isActive
             it[createdAt] = now
             it[updatedAt] = now
+            it[EmployeeTable.name] = name
+            it[EmployeeTable.photoUrl] = photoUrl
+            it[EmployeeTable.salaryRate] = salaryRate
         }
         findById(id.toString())
     }
@@ -69,7 +75,10 @@ class EmployeeRepository {
             salaryAmount = row[EmployeeTable.salaryAmount],
             isActive = row[EmployeeTable.isActive],
             createdAt = row[EmployeeTable.createdAt],
-            updatedAt = row[EmployeeTable.updatedAt]
+            updatedAt = row[EmployeeTable.updatedAt],
+            name = row[EmployeeTable.name],
+            photoUrl = row[EmployeeTable.photoUrl],
+            salaryRate = row[EmployeeTable.salaryRate]
         )
     }
 }

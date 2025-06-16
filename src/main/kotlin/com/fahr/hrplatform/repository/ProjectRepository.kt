@@ -37,8 +37,9 @@ class ProjectRepository {
             it[createdAt] = now
             it[updatedAt] = now
             it[ProjectTable.managerId] = managerId?.let { id -> UUID.fromString(id) }
-            it[ProjectTable.employeeIds] = employeeIds.joinToString(",")
+            it[ProjectTable.employeeIds] = employeeIds.joinToString(",").ifEmpty { "" }
             it[ProjectTable.location] = location
+
         }
         findById(id.toString())
     }
@@ -62,11 +63,11 @@ class ProjectRepository {
         return Project(
             id = row[ProjectTable.id].toString(),
             name = row[ProjectTable.name],
-            description = row[ProjectTable.description],
+            description = row[ProjectTable.description] ?: "",
             startDate = row[ProjectTable.startDate],
-            endDate = row[ProjectTable.endDate],
+            endDate = row[ProjectTable.endDate] ?: LocalDate(0,0,0),
             status = row[ProjectTable.status],
-            budget = row[ProjectTable.budget],
+            budget = row[ProjectTable.budget] ?: 0.0,
             createdAt = row[ProjectTable.createdAt],
             updatedAt = row[ProjectTable.updatedAt],
             managerId = row[ProjectTable.managerId].toString(),

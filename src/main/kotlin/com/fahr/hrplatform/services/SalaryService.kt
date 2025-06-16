@@ -35,6 +35,7 @@ class SalaryService(
                     }
                 employee.salaryAmount * totalHours
             }
+
         }
         return baseAmount
     }
