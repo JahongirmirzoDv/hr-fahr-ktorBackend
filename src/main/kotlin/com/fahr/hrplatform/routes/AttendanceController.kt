@@ -18,6 +18,8 @@ import io.ktor.server.auth.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.serializers.LocalDateTimeComponentSerializer
@@ -158,6 +160,35 @@ fun Route.attendanceRoutes() {
                 val updatedAttendance = attendanceRepository.checkOut(attendance.id, request.checkOutTime)
                 call.respond(HttpStatusCode.OK, updatedAttendance.toString())
             }
+
+            post("/verify-face") {
+                val multipart = call.receiveMultipart()
+                var imageBytes: ByteArray? = null
+
+                multipart.forEachPart { part ->
+                    if (part is PartData.FileItem && part.name == "image") {
+                        imageBytes = withContext(Dispatchers.IO) {
+                            part.streamProvider().readBytes()
+                        }
+                    }
+                    part.dispose()
+                }
+
+                if (imageBytes == null) {
+                    call.respond(HttpStatusCode.BadRequest, "Image not provided")
+                    return@post
+                }
+
+                // TODO: Replace this mock logic with actual face recognition using ML Kit or external API
+                val isRecognized = true // mock result
+
+                if (isRecognized) {
+                    call.respond(HttpStatusCode.OK, mapOf("message" to "Face recognized successfully"))
+                } else {
+                    call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Face not recognized"))
+                }
+            }
+
         }
     }
 }
