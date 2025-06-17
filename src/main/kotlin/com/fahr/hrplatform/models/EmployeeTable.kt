@@ -30,6 +30,8 @@ object EmployeeTable : UUIDTable("employees") {
     val isActive = bool("is_active").default(true)
     val createdAt = datetime("created_at").default(DateUtil.datetimeInUtc)
     val updatedAt = datetime("updated_at").default(DateUtil.datetimeInUtc)
+
+
 }
 
 @Serializable
