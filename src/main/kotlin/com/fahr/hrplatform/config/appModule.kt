@@ -1,6 +1,7 @@
 package com.fahr.hrplatform.config
 
 import com.fahr.hrplatform.repository.*
+import com.fahr.hrplatform.services.FaceRecognitionService
 import com.fahr.hrplatform.services.SalaryService
 import org.koin.dsl.module
 
@@ -13,4 +14,5 @@ val appModule = module {
     single { SalaryRepository() }
     single { ReportRepository() }
     single { SalaryService(get(), get()) } // Add this line
+    single { FaceRecognitionService() } // Add this line
 }

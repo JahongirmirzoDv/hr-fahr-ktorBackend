@@ -5,22 +5,21 @@ import com.fahr.hrplatform.models.*
 import com.fahr.hrplatform.utils.DateUtil
 import kotlinx.datetime.LocalDateTime
 import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import java.util.*
 
 class EmployeeRepository {
 
     suspend fun create(
         userId: String,
-        name:String,
-        photoUrl:String,
+        name: String,
         salaryRate: Double,
         position: String,
         department: String,
         hireDate: LocalDateTime,
         salaryType: SalaryType,
         salaryAmount: Double,
-        isActive: Boolean = true
+        isActive: Boolean = true,
+        faceEmbedding: String
     ): Employee? = dbQuery {
         val id = UUID.randomUUID()
         val now = DateUtil.datetimeInUtc
@@ -37,7 +36,7 @@ class EmployeeRepository {
             it[createdAt] = now
             it[updatedAt] = now
             it[EmployeeTable.name] = name
-            it[EmployeeTable.photoUrl] = photoUrl
+            it[EmployeeTable.faceEmbedding] = faceEmbedding
             it[EmployeeTable.salaryRate] = salaryRate
         }
         findById(id.toString())
@@ -77,7 +76,7 @@ class EmployeeRepository {
             createdAt = row[EmployeeTable.createdAt],
             updatedAt = row[EmployeeTable.updatedAt],
             name = row[EmployeeTable.name],
-            photoUrl = row[EmployeeTable.photoUrl],
+            faceEmbedding = row[EmployeeTable.faceEmbedding],
             salaryRate = row[EmployeeTable.salaryRate]
         )
     }

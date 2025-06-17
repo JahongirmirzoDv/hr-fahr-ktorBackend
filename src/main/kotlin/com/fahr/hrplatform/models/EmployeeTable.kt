@@ -19,7 +19,7 @@ object EmployeeTable : UUIDTable("employees") {
 
     val name = varchar("name", 255)
 
-    val photoUrl = varchar("photo_url", 255)
+    val faceEmbedding = text("face_embedding").nullable() // Storing as Base64 text
 
     val salaryRate = double("salary_rate").default(0.0)
     val position = varchar("position", 255)
@@ -38,7 +38,7 @@ object EmployeeTable : UUIDTable("employees") {
 data class Employee(
     val id: String,
     val name: String,
-    val photoUrl: String,
+    val faceEmbedding: String?, // ADDED
     val position: String,
     val salaryRate: Double,
     val salaryType: SalaryType,
@@ -54,7 +54,6 @@ data class Employee(
 @Serializable
 data class EmployeeDTO(
     val name: String,
-    val photoUrl: String? = null,
     val position: String,
     val salaryRate: Double? = null,
     val salaryType: SalaryType,
@@ -82,6 +81,5 @@ data class EmployeeResponse(
     val isActive: Boolean,
     val createdAt: LocalDateTime = DateUtil.datetimeInUtc,
     val updatedAt: LocalDateTime = DateUtil.datetimeInUtc,
-    val photoUrl: String? = null,
     val salaryRate: Double? = null
 )

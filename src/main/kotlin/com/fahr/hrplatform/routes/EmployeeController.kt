@@ -7,53 +7,81 @@ import com.fahr.hrplatform.models.UserPrincipal
 import com.fahr.hrplatform.models.requireRole
 import com.fahr.hrplatform.repository.EmployeeRepository
 import com.fahr.hrplatform.repository.UserRepository
+import com.fahr.hrplatform.services.FaceRecognitionService
 import com.fahr.hrplatform.utils.DateUtil
 import io.ktor.http.*
+import io.ktor.http.content.PartData
+import io.ktor.http.content.forEachPart
+import io.ktor.http.content.streamProvider
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.serialization.json.Json
 import org.koin.ktor.ext.inject
-import java.time.LocalDateTime
+import java.io.InputStream
 
 fun Route.employeeRoutes() {
     val employeeRepository: EmployeeRepository by inject()
     val userRepository: UserRepository by inject()
+    val faceRecognitionService: FaceRecognitionService by inject() // Inject the service
+
 
     authenticate("auth-jwt") {
         route("/employees") {
             post {
                 val principal = call.principal<UserPrincipal>()
-                // As per your request, only ADMIN can create/update employees
                 if (principal == null || !principal.requireRole(Role.ADMIN)) {
                     call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Admin role required"))
                     return@post
                 }
 
-                val employeeDTO = call.receive<EmployeeDTO>()
-                if (userRepository.findById(employeeDTO.userId) == null) {
-                    call.respond(HttpStatusCode.BadRequest, mapOf("error" to "User not found"))
+                var employeeDTO: EmployeeDTO? = null
+                var photoStream: InputStream? = null
+
+                // Receive a multipart request
+                val multipart = call.receiveMultipart()
+                multipart.forEachPart { part ->
+                    when (part) {
+                        is PartData.FormItem -> {
+                            if (part.name == "data") {
+                                // The employee JSON data
+                                employeeDTO = Json.decodeFromString<EmployeeDTO>(part.value)
+                            }
+                        }
+                        is PartData.FileItem -> {
+                            if (part.name == "photo") {
+                                // The employee photo
+                                photoStream = part.streamProvider()
+                            }
+                        }
+                        else -> part.dispose()
+                    }
+                }
+
+                if (employeeDTO == null || photoStream == null) {
+                    call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Missing employee data or photo"))
                     return@post
                 }
 
-                if (employeeRepository.findByUserId(employeeDTO.userId) != null) {
-                    call.respond(HttpStatusCode.Conflict, mapOf("error" to "Employee record already exists for this user"))
-                    return@post
-                }
+                // Generate and encode the face embedding
+                val embedding = faceRecognitionService.generateEmbedding(photoStream!!)
+                val embeddingBase64 = faceRecognitionService.embeddingToBase64(embedding)
 
+                val dto = employeeDTO!!
                 val employee = employeeRepository.create(
-                    userId = employeeDTO.userId,
-                    position = employeeDTO.position,
-                    department = employeeDTO.department,
-                    hireDate = employeeDTO.hireDate ?: DateUtil.datetimeInUtc,
-                    salaryType = employeeDTO.salaryType,
-                    salaryAmount = employeeDTO.salaryAmount,
-                    isActive = employeeDTO.isActive,
-                    name = employeeDTO.name,
-                    photoUrl = employeeDTO.photoUrl ?: "",
-                    salaryRate = employeeDTO.salaryRate ?: 0.0
+                    userId = dto.userId,
+                    position = dto.position,
+                    department = dto.department,
+                    hireDate = dto.hireDate ?: DateUtil.datetimeInUtc,
+                    salaryType = dto.salaryType,
+                    salaryAmount = dto.salaryAmount,
+                    isActive = dto.isActive,
+                    name = dto.name,
+                    faceEmbedding = embeddingBase64, // Save the new embedding
+                    salaryRate = dto.salaryRate ?: 0.0,
                 )
                 call.respond(HttpStatusCode.Created, employee.toString())
             }
@@ -81,7 +109,6 @@ fun Route.employeeRoutes() {
                         isActive = employee.isActive,
                         createdAt = employee.createdAt,
                         updatedAt = employee.updatedAt,
-                        photoUrl = employee.photoUrl
                     )
                 }
                 call.respond(employees)

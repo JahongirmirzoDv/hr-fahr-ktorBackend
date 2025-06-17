@@ -8,6 +8,7 @@ import com.fahr.hrplatform.models.isValid
 import com.fahr.hrplatform.models.requireRole
 import com.fahr.hrplatform.repository.AttendanceRepository
 import com.fahr.hrplatform.repository.EmployeeRepository
+import com.fahr.hrplatform.services.FaceRecognitionService
 import com.fahr.hrplatform.utils.DateUtil
 import io.ktor.http.*
 import io.ktor.http.content.PartData
@@ -27,10 +28,13 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.koin.ktor.ext.inject
 import java.io.File
+import java.io.InputStream
 
 fun Route.attendanceRoutes() {
     val attendanceRepository: AttendanceRepository by inject()
     val employeeRepository: EmployeeRepository by inject()
+    val faceRecognitionService: FaceRecognitionService by inject() // Inject
+
 
     authenticate("auth-jwt") {
         route("/attendance") {
@@ -160,34 +164,48 @@ fun Route.attendanceRoutes() {
                 call.respond(HttpStatusCode.OK, updatedAttendance.toString())
             }
 
+            // THIS IS THE NEW /verify-face ROUTE
             post("/verify-face") {
-                val multipart = call.receiveMultipart()
-                var imageBytes: ByteArray? = null
+                var employeeId: String? = null
+                var verificationPhotoStream: InputStream? = null
 
+                // Receive multipart data (employeeId and the verification image)
+                val multipart = call.receiveMultipart()
                 multipart.forEachPart { part ->
-                    if (part is PartData.FileItem && part.name == "image") {
-                        imageBytes = withContext(Dispatchers.IO) {
-                            part.streamProvider().readBytes()
-                        }
+                    when (part) {
+                        is PartData.FormItem -> if (part.name == "employeeId") employeeId = part.value
+                        is PartData.FileItem -> if (part.name == "image") verificationPhotoStream = part.streamProvider()
+                        else -> part.dispose()
                     }
-                    part.dispose()
                 }
 
-                if (imageBytes == null) {
-                    call.respond(HttpStatusCode.BadRequest, "Image not provided")
+                if (employeeId == null || verificationPhotoStream == null) {
+                    call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Missing employeeId or image"))
                     return@post
                 }
 
-                // TODO: Replace this mock logic with actual face recognition using ML Kit or external API
-                val isRecognized = true // mock result
+                // 1. Fetch the stored employee record
+                val employee = employeeRepository.findById(employeeId!!)
+                if (employee?.faceEmbedding == null) {
+                    call.respond(HttpStatusCode.NotFound, mapOf("error" to "Employee not found or no face data registered"))
+                    return@post
+                }
+
+                // 2. Convert stored Base64 embedding back to a float array
+                val storedEmbedding = faceRecognitionService.base64ToEmbedding(employee.faceEmbedding)
+
+                // 3. Generate a new embedding from the live verification photo
+                val verificationEmbedding = faceRecognitionService.generateEmbedding(verificationPhotoStream!!)
+
+                // 4. Compare the two embeddings
+                val isRecognized = faceRecognitionService.areSimilar(storedEmbedding, verificationEmbedding)
 
                 if (isRecognized) {
-                    call.respond(HttpStatusCode.OK, mapOf("message" to "Face recognized successfully"))
+                    call.respond(HttpStatusCode.OK, mapOf("message" to "Face recognized successfully", "verified" to true))
                 } else {
-                    call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Face not recognized"))
+                    call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Face not recognized", "verified" to false))
                 }
             }
-
         }
     }
 }
