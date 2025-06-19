@@ -15,4 +15,4 @@ ktor:
     driverClassName: "org.h2.Driver"
     jdbcURL: "jdbc:h2:file:./build/db;DB_CLOSE_DELAY=-1"
     user: "root"
-    password: "password"
+    password: "r"

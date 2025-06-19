@@ -10,11 +10,11 @@ data class FaceRecognitionRequest(
 
 @Serializable
 data class FaceRecognitionResponse(
-    val success: Boolean,
-    val message: String,
-    val confidence: Double? = null,
-    val userId: String? = null,
-    val faces: List<DetectedFace> = emptyList()
+    val verified: Boolean,
+    val similarityScore: String,
+    val threshold: Double,
+    val employeeId: String,
+    val timestamp: String
 )
 
 @Serializable

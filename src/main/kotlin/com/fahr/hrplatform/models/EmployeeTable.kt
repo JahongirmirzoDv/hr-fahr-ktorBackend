@@ -76,5 +76,6 @@ data class EmployeeResponse(
     val salaryRate: Double?,
     val isActive: Boolean,
     val createdAt: LocalDateTime,
-    val updatedAt: LocalDateTime
+    val updatedAt: LocalDateTime,
+    val embending:String
 )

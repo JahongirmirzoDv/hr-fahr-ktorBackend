@@ -241,6 +241,7 @@ fun Route.employeeRoutes() {
                         isActive = employee.isActive,
                         createdAt = employee.createdAt,
                         updatedAt = employee.updatedAt,
+                        embending = employee.faceEmbedding ?: ""
                     )
                 }
                 call.respond(employees)

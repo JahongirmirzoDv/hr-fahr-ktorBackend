@@ -4,12 +4,14 @@ import com.fahr.hrplatform.models.AttendanceDTO
 import com.fahr.hrplatform.models.CheckInRequestDTO
 import com.fahr.hrplatform.models.Role
 import com.fahr.hrplatform.models.UserPrincipal
+import com.fahr.hrplatform.models.faceRecognition.FaceRecognitionResponse
 import com.fahr.hrplatform.models.isValid
 import com.fahr.hrplatform.models.requireRole
 import com.fahr.hrplatform.repository.AttendanceRepository
 import com.fahr.hrplatform.repository.EmployeeRepository
 import com.fahr.hrplatform.services.FaceRecognitionService
 import com.fahr.hrplatform.utils.DateUtil
+import com.fahr.hrplatform.utils.FaceEmbeddingMigration
 import io.ktor.http.*
 import io.ktor.http.content.PartData
 import io.ktor.http.content.forEachPart
@@ -38,6 +40,31 @@ fun Route.attendanceRoutes() {
 
     authenticate("auth-jwt") {
         route("/attendance") {
+
+            post("/fix-face-embeddings") {
+                val principal = call.principal<UserPrincipal>()
+                if (principal == null || !principal.requireRole(Role.ADMIN)) {
+                    call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Admin role required"))
+                    return@post
+                }
+
+                try {
+                    FaceEmbeddingMigration.fixCorruptedEmbeddings()
+                    call.respond(
+                        HttpStatusCode.OK, mapOf(
+                            "message" to "Face embedding migration completed successfully",
+                            "action" to "Check logs for details"
+                        )
+                    )
+                } catch (e: Exception) {
+                    call.respond(
+                        HttpStatusCode.InternalServerError, mapOf(
+                            "error" to "Migration failed: ${e.message}"
+                        )
+                    )
+                }
+            }
+
             post {
                 val principal = call.principal<UserPrincipal>()
                 if (principal == null || !principal.requireRole(Role.ADMIN, Role.MANAGER)) {
@@ -52,7 +79,10 @@ fun Route.attendanceRoutes() {
                 }
 
                 if (attendanceRepository.findByEmployeeAndDate(attendanceDTO.employeeId, attendanceDTO.date) != null) {
-                    call.respond(HttpStatusCode.Conflict, mapOf("error" to "Attendance record already exists for this date"))
+                    call.respond(
+                        HttpStatusCode.Conflict,
+                        mapOf("error" to "Attendance record already exists for this date")
+                    )
                     return@post
                 }
 
@@ -82,8 +112,10 @@ fun Route.attendanceRoutes() {
                     if (startDate != null && endDate != null) {
                         attendanceRepository.findByEmployeeAndDateRange(employeeId, startDate, endDate)
                     } else {
-                        attendanceRepository.findByEmployeeAndDateRange(employeeId, DateUtil.firstDayOfCurrentMonth,
-                            DateUtil.dateInUtc)
+                        attendanceRepository.findByEmployeeAndDateRange(
+                            employeeId, DateUtil.firstDayOfCurrentMonth,
+                            DateUtil.dateInUtc
+                        )
                     }
                 } else {
                     attendanceRepository.findAll()
@@ -110,6 +142,7 @@ fun Route.attendanceRoutes() {
                                 dto = Json.decodeFromString<CheckInRequestDTO>(part.value)
                             }
                         }
+
                         is PartData.FileItem -> {
                             if (part.name == "photo") {
                                 val bytes = part.streamProvider().readBytes()
@@ -120,6 +153,7 @@ fun Route.attendanceRoutes() {
                                 photoFileName = file.name
                             }
                         }
+
                         else -> part.dispose()
                     }
                 }
@@ -179,11 +213,13 @@ fun Route.attendanceRoutes() {
                                     employeeId = part.value
                                 }
                             }
+
                             is PartData.FileItem -> {
                                 if (part.name == "image") {
                                     verificationPhotoStream = part.streamProvider().readBytes()
                                 }
                             }
+
                             else -> {
                                 // Ignore other part types
                             }
@@ -212,10 +248,12 @@ fun Route.attendanceRoutes() {
                     }
 
                     if (employee.faceEmbedding.isNullOrBlank()) {
-                        call.respond(HttpStatusCode.BadRequest, mapOf(
-                            "error" to "No face data registered for this employee",
-                            "action" to "Please register the employee's face photo first"
-                        ))
+                        call.respond(
+                            HttpStatusCode.BadRequest, mapOf(
+                                "error" to "No face data registered for this employee",
+                                "action" to "Please register the employee's face photo first"
+                            )
+                        )
                         return@post
                     }
 
@@ -226,12 +264,14 @@ fun Route.attendanceRoutes() {
                         // Log the error for debugging
                         println("Error decoding face embedding for employee $employeeId: ${e.message}")
 
-                        call.respond(HttpStatusCode.BadRequest, mapOf(
-                            "error" to "Invalid face data stored for this employee",
-                            "details" to e.message,
-                            "action" to "Please re-register the employee's face photo",
-                            "employeeId" to employeeId
-                        ))
+                        call.respond(
+                            HttpStatusCode.BadRequest, mapOf(
+                                "error" to "Invalid face data stored for this employee",
+                                "details" to e.message,
+                                "action" to "Please re-register the employee's face photo",
+                                "employeeId" to employeeId
+                            )
+                        )
                         return@post
                     }
 
@@ -239,17 +279,20 @@ fun Route.attendanceRoutes() {
                     val verificationEmbedding = try {
                         faceRecognitionService.generateEmbedding(verificationPhotoStream!!)
                     } catch (e: Exception) {
-                        call.respond(HttpStatusCode.BadRequest, mapOf(
-                            "error" to "Failed to process verification image",
-                            "details" to e.message,
-                            "action" to "Please ensure the image contains a clear face and try again"
-                        ))
+                        call.respond(
+                            HttpStatusCode.BadRequest, mapOf(
+                                "error" to "Failed to process verification image",
+                                "details" to e.message,
+                                "action" to "Please ensure the image contains a clear face and try again"
+                            )
+                        )
                         return@post
                     }
 
                     // 4. Compare the two embeddings
                     val isRecognized = faceRecognitionService.areSimilar(storedEmbedding, verificationEmbedding)
-                    val similarityScore = faceRecognitionService.getSimilarityScore(storedEmbedding, verificationEmbedding)
+                    val similarityScore =
+                        faceRecognitionService.getSimilarityScore(storedEmbedding, verificationEmbedding)
 
                     // Log the verification attempt
                     println("Face verification attempt for employee $employeeId:")
@@ -257,23 +300,28 @@ fun Route.attendanceRoutes() {
                     println("- Recognition result: $isRecognized")
 
                     // 5. Respond with the verification result
-                    call.respond(HttpStatusCode.OK, mapOf(
-                        "verified" to isRecognized,
-                        "similarityScore" to String.format("%.4f", similarityScore),
-                        "threshold" to 0.75,
-                        "employeeId" to employeeId,
-                        "timestamp" to DateUtil.datetimeInUtc.toString()
-                    ))
+                    call.respond(
+                        HttpStatusCode.OK,
+                        FaceRecognitionResponse(
+                            verified = isRecognized,
+                            similarityScore = String.format("%.4f", similarityScore),
+                            threshold = 0.75,
+                            employeeId = employeeId ?: "null",
+                            timestamp = DateUtil.datetimeInUtc.toString()
+                        )
+                    )
 
                 } catch (e: Exception) {
                     println("Unexpected error in face verification: ${e.message}")
                     e.printStackTrace()
 
-                    call.respond(HttpStatusCode.InternalServerError, mapOf(
-                        "error" to "Face verification failed",
-                        "details" to "An unexpected error occurred during verification",
-                        "timestamp" to DateUtil.datetimeInUtc.toString()
-                    ))
+                    call.respond(
+                        HttpStatusCode.InternalServerError, mapOf(
+                            "error" to "Face verification failed",
+                            "details" to "An unexpected error occurred during verification",
+                            "timestamp" to DateUtil.datetimeInUtc.toString()
+                        )
+                    )
                 }
             }
         }
