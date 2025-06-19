@@ -77,5 +77,4 @@ data class EmployeeResponse(
     val isActive: Boolean,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime,
-    val embending:String
 )

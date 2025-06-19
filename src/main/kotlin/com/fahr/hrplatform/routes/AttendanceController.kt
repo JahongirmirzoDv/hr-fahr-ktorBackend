@@ -123,7 +123,6 @@ fun Route.attendanceRoutes() {
                 call.respond(attendanceRecords)
             }
 
-            // This route now has a specific role check for Manager
             post("/check-in") {
                 val principal = call.principal<UserPrincipal>()
                 if (principal == null || !principal.requireRole(Role.MANAGER)) {
@@ -198,7 +197,6 @@ fun Route.attendanceRoutes() {
                 call.respond(HttpStatusCode.OK, updatedAttendance.toString())
             }
 
-            // THIS IS THE NEW /verify-face ROUTE
             post("/verify-face") {
                 var employeeId: String? = null
                 var verificationPhotoStream: ByteArray? = null
@@ -324,6 +322,8 @@ fun Route.attendanceRoutes() {
                     )
                 }
             }
+
+            put ("{id}"){  }
         }
     }
 }

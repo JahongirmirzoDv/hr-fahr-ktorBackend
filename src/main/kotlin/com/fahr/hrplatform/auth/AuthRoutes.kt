@@ -13,31 +13,53 @@ import io.ktor.server.routing.*
 fun Route.authRoutes() {
     route("/auth") {
         post("/register") {
-            val userDTO = call.receive<UserDTO>()
-            val userRepository = UserRepository()
+            try {
+                val userDTO = call.receive<UserDTO>()
+                val userRepository = UserRepository()
 
-            // Check if user already exists
-            val existingUser = userRepository.findByEmail(userDTO.email)
-            if (existingUser != null) {
-                call.respond(HttpStatusCode.Conflict, ErrorResponse("User with this email already exists"))
-                return@post
-            }
+                // Check if user already exists
+                val existingUser = userRepository.findByEmail(userDTO.email)
+                if (existingUser != null) {
+                    call.respond(HttpStatusCode.Conflict, ErrorResponse("User with this email already exists"))
+                    return@post
+                }
 
-            // Hash password
-            val passwordHash = PasswordHasher.hashPassword(userDTO.password)
+                // Hash password
+                val passwordHash = PasswordHasher.hashPassword(userDTO.password)
 
-            // Create user
-            val user = userRepository.create(
-                userDTO.fullName,
-                userDTO.email,
-                passwordHash,
-                userDTO.role
-            )
+                // Create user
+                val user = userRepository.create(
+                    userDTO.fullName,
+                    userDTO.email,
+                    passwordHash,
+                    userDTO.role
+                )
 
-            if (user != null) {
-                call.respond(HttpStatusCode.Created, RegisterResponse(userId = user.id))
-            } else {
-                call.respond(HttpStatusCode.InternalServerError, ErrorResponse("Failed to create user"))
+                if (user != null) {
+                    // Log successful creation
+                    println("User created successfully:")
+                    println("- ID: ${user.id}")
+                    println("- Name: ${user.fullName}")
+                    println("- Email: ${user.email}")
+                    println("- Role: ${user.role}")
+
+                    call.respond(HttpStatusCode.Created, mapOf(
+                        "success" to true,
+                        "message" to "User registered successfully",
+                        "user" to mapOf(
+                            "userId" to user.id,
+                            "fullName" to user.fullName,
+                            "email" to user.email,
+                            "role" to user.role
+                        )
+                    ))
+                } else {
+                    call.respond(HttpStatusCode.InternalServerError, ErrorResponse("Failed to create user"))
+                }
+            } catch (e: Exception) {
+                println("Error during user registration: ${e.message}")
+                e.printStackTrace()
+                call.respond(HttpStatusCode.InternalServerError, ErrorResponse("Registration failed: ${e.message}"))
             }
         }
 

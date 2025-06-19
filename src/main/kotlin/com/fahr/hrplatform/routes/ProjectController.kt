@@ -30,7 +30,10 @@ fun Route.projectRoutes() {
                 val principal = call.principal<UserPrincipal>()
 
                 if (principal == null || !principal.requireRole(Role.ADMIN, Role.MANAGER)) {
-                    call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Only admins and managers can create projects"))
+                    call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only admins and managers can create projects")
+                    )
                     return@post
                 }
 
@@ -91,13 +94,15 @@ fun Route.projectRoutes() {
                 call.respond(projects)
             }
 
-            // Project assignments endpoints
             post("/{id}/assignments") {
                 val principal = call.principal<JWTPrincipal>()
                 val role = principal?.payload?.getClaim("role")?.asString() ?: ""
 
                 if (role != "admin" && role != "manager") {
-                    call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Only admins and managers can assign employees to projects"))
+                    call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only admins and managers can assign employees to projects")
+                    )
                     return@post
                 }
 
@@ -150,6 +155,11 @@ fun Route.projectRoutes() {
 
                 call.respond(assignments)
             }
+
+            put ("/{id"){  }
+
+            delete("/{id}"){}
+
         }
     }
 }

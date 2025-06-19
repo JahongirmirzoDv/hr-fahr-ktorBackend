@@ -126,26 +126,11 @@ fun Route.employeeRoutes() {
                         return@post
                     }
 
-                    // Check if employee with this userId already exists
-//                    val existingEmployee = try {
-//                        employeeRepository.findById(employeeDTO.userId)
-//                    } catch (e: Exception) {
-//                        null // If findByUserId doesn't exist or throws exception, assume employee doesn't exist
-//                    }
-
-//                    if (existingEmployee != null) {
-//                        call.respond(
-//                            HttpStatusCode.Conflict,
-//                            mapOf("error" to "Employee with userId '${employeeDTO.userId}' already exists")
-//                        )
-//                        return@post
-//                    }
-
                     // Create the employee with the face embedding
                     val employee = try {
                         employeeRepository.create(
-                            userId = employeeDTO.userId,           // FIXED: Now correctly positioned
-                            name = employeeDTO.name,               // FIXED: Now correctly positioned
+                            userId = employeeDTO.userId,
+                            name = employeeDTO.name,
                             position = employeeDTO.position,
                             department = employeeDTO.department,
                             hireDate = employeeDTO.hireDate ?: DateUtil.datetimeInUtc,
@@ -156,6 +141,8 @@ fun Route.employeeRoutes() {
                             faceEmbedding = embeddingBase64
                         )
                     } catch (e: Exception) {
+                        println("Error creating employee: ${e.message}")
+                        e.printStackTrace()
                         call.respond(
                             HttpStatusCode.InternalServerError,
                             mapOf("error" to "Failed to create employee: ${e.message}")
@@ -164,12 +151,16 @@ fun Route.employeeRoutes() {
                     }
 
                     if (employee == null) {
-                        call.respond(HttpStatusCode.InternalServerError, mapOf("error" to "Failed to create employee is null"))
+                        call.respond(
+                            HttpStatusCode.InternalServerError,
+                            mapOf("error" to "Failed to create employee - returned null")
+                        )
                         return@post
                     }
 
                     // Log successful registration
                     println("Employee registered successfully:")
+                    println("- ID: ${employee.id}")
                     println("- User ID: ${employee.userId}")
                     println("- Name: ${employee.name}")
                     println("- Position: ${employee.position}")
@@ -178,21 +169,28 @@ fun Route.employeeRoutes() {
                     println("- Registered by: ${principal.userId}")
                     println("- Timestamp: ${DateUtil.datetimeInUtc}")
 
+                    // Get user info for complete response
+                    val user = userRepository.findById(employee.userId)
+
                     call.respond(
                         HttpStatusCode.Created,
                         mapOf(
+                            "success" to true,
                             "message" to "Employee created successfully with face registration!",
-                            "employee" to mapOf(
-                                "userId" to employee.userId,
-                                "name" to employee.name,
-                                "position" to employee.position,
-                                "department" to employee.department,
-                                "hireDate" to employee.hireDate,
-                                "salaryType" to employee.salaryType,
-                                "salaryAmount" to employee.salaryAmount,
-                                "salaryRate" to employee.salaryRate,
-                                "isActive" to employee.isActive,
-                                "faceRegistered" to true
+                            "employee" to EmployeeResponse(
+                                id = employee.id,
+                                userId = employee.userId,
+                                name = user?.fullName ?: employee.name,
+                                email = user?.email ?: "",
+                                position = employee.position,
+                                department = employee.department,
+                                hireDate = employee.hireDate.toString(),
+                                salaryType = employee.salaryType,
+                                salaryAmount = employee.salaryAmount,
+                                salaryRate = employee.salaryRate,
+                                isActive = employee.isActive,
+                                createdAt = employee.createdAt,
+                                updatedAt = employee.updatedAt,
                             ),
                             "registeredBy" to principal.userId,
                             "timestamp" to DateUtil.datetimeInUtc
@@ -210,13 +208,13 @@ fun Route.employeeRoutes() {
                     call.respond(
                         HttpStatusCode.InternalServerError,
                         mapOf(
+                            "success" to false,
                             "error" to "Internal server error during employee registration: ${e.message}",
                             "timestamp" to DateUtil.datetimeInUtc
                         )
                     )
                 }
             }
-
 
             get {
                 val principal = call.principal<UserPrincipal>()
@@ -241,7 +239,6 @@ fun Route.employeeRoutes() {
                         isActive = employee.isActive,
                         createdAt = employee.createdAt,
                         updatedAt = employee.updatedAt,
-                        embending = employee.faceEmbedding ?: ""
                     )
                 }
                 call.respond(employees)
@@ -272,12 +269,12 @@ fun Route.employeeRoutes() {
                         "hireDate" to employee.hireDate.toString(),
                         "salaryType" to employee.salaryType,
                         "salaryAmount" to employee.salaryAmount,
-                        "isActive" to employee.isActive
+                        "isActive" to employee.isActive,
+                        "faceEmbedding" to employee.faceEmbedding // Include face embedding info
                     )
                 )
             }
 
-            // New function to get employees by department
             get("/department/{departmentName}") {
                 val departmentName = call.parameters["departmentName"] ?: return@get call.respond(
                     HttpStatusCode.BadRequest,
@@ -307,6 +304,11 @@ fun Route.employeeRoutes() {
                 }
                 call.respond(employees)
             }
+
+            put("/{id}"){}
+
+            delete("/{id}") {  }
+
         }
     }
 }

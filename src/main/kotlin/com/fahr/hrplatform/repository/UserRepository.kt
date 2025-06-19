@@ -14,17 +14,32 @@ class UserRepository {
         val id = UUID.randomUUID()
         val now = DateUtil.datetimeInUtc
 
-        UserTable.insert {
-            it[UserTable.id] = id
-            it[UserTable.fullName] = fullName
-            it[UserTable.email] = email
-            it[UserTable.passwordHash] = passwordHash
-            it[UserTable.role] = role
-            it[createdAt] = now
-            it[updatedAt] = now
-        }
+        try {
+            UserTable.insert {
+                it[UserTable.id] = id
+                it[UserTable.fullName] = fullName
+                it[UserTable.email] = email
+                it[UserTable.passwordHash] = passwordHash
+                it[UserTable.role] = role
+                it[createdAt] = now
+                it[updatedAt] = now
+            }
 
-        findById(id.toString())
+            // Return the created user directly instead of calling findById
+            User(
+                id = id.toString(),
+                fullName = fullName,
+                email = email,
+                passwordHash = passwordHash,
+                role = role,
+                createdAt = now.toString(),
+                updatedAt = now.toString()
+            )
+        } catch (e: Exception) {
+            println("Error creating user: ${e.message}")
+            e.printStackTrace()
+            null
+        }
     }
 
     suspend fun findByEmail(email: String): User? = dbQuery {
@@ -34,9 +49,14 @@ class UserRepository {
     }
 
     suspend fun findById(id: String): User? = dbQuery {
-        UserTable.select { UserTable.id eq UUID.fromString(id) }
-            .mapNotNull { toUser(it) }
-            .singleOrNull()
+        try {
+            UserTable.select { UserTable.id eq UUID.fromString(id) }
+                .mapNotNull { toUser(it) }
+                .singleOrNull()
+        } catch (e: Exception) {
+            println("Error finding user by id $id: ${e.message}")
+            null
+        }
     }
 
     suspend fun findAll(): List<User> = dbQuery {

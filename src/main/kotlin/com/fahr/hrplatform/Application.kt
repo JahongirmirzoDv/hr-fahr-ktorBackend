@@ -37,10 +37,10 @@ fun Application.module() {
     }
 
     configureSecurity()
-    DatabaseFactory.init(environment.config)
     configureSerialization()
 
 
+    DatabaseFactory.init(environment.config)
     transaction {
         SchemaUtils.create(
             UserTable,
@@ -56,10 +56,6 @@ fun Application.module() {
     install(CORS) {
         // This allows your frontend running on localhost:8081 to make requests
         allowHost("localhost:8081")
-
-        // You can also use allowHost("your-domain.com") in production
-
-        // Allow common methods
         allowMethod(HttpMethod.Options)
         allowMethod(HttpMethod.Get)
         allowMethod(HttpMethod.Post)
@@ -78,73 +74,5 @@ fun Application.module() {
         // allowCredentials = true
     }
 
-
-    routing {
-        // Public authentication routes
-        authRoutes()
-
-        // Routes for ADMIN role
-        route("/admin") {
-            userRoutes()
-            salaryRoutes()
-            projectRoutes()
-            reportRoutes()
-            attendanceRoutes()
-            employeeRoutes()
-        }
-        // Routes for MANAGER role
-        route("/manager") {
-            employeeRoutes()
-            attendanceRoutes()
-        }
-
-        // --- NEW: Added dedicated routes for USER role ---
-        authenticate("auth-jwt") {
-            route("/user") {
-                // Route for a user to get their own attendance
-                get("/attendance") {
-                    val principal = call.principal<UserPrincipal>()
-                    if (principal == null || !principal.requireRole(Role.USER)) {
-                        call.respond(HttpStatusCode.Forbidden, mapOf("error" to "User role required"))
-                        return@get
-                    }
-
-                    val employeeRepository = EmployeeRepository()
-                    val employee = employeeRepository.findByUserId(principal.userId.toString())
-                    if (employee == null) {
-                        call.respond(HttpStatusCode.NotFound, mapOf("error" to "Employee record not found"))
-                        return@get
-                    }
-
-                    val attendanceRepository = AttendanceRepository()
-                    val records = attendanceRepository.findByEmployeeAndDateRange(
-                        employee.id,
-                        DateUtil.firstDayOfCurrentMonth, // Default to current month
-                        DateUtil.dateInUtc
-                    )
-                    call.respond(records)
-                }
-
-                // Route for a user to get their own salary records
-                get("/salary") {
-                    val principal = call.principal<UserPrincipal>()
-                    if (principal == null || !principal.requireRole(Role.USER)) {
-                        call.respond(HttpStatusCode.Forbidden, mapOf("error" to "User role required"))
-                        return@get
-                    }
-
-                    val employeeRepository = EmployeeRepository()
-                    val employee = employeeRepository.findByUserId(principal.userId.toString())
-                    if (employee == null) {
-                        call.respond(HttpStatusCode.NotFound, mapOf("error" to "Employee record not found"))
-                        return@get
-                    }
-
-                    val salaryRepository = SalaryRepository()
-                    val records = salaryRepository.findByEmployee(employee.id)
-                    call.respond(records)
-                }
-            }
-        }
-    }
+    configureRouting()
 }

@@ -45,6 +45,12 @@ fun Route.reportRoutes() {
 
                 call.respond(report)
             }
+
+            get("/department/{dept") {}
+
+            get("/employee/{id}") { }
+
+            get("/attendance") { }
         }
     }
 }
