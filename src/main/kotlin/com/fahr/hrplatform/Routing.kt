@@ -1,4 +1,5 @@
-package com.fahr.hrplatform
+// Create a new file: RouterConfig.kt
+package com.fahr.hrplatform.config
 
 import com.fahr.hrplatform.auth.authRoutes
 import com.fahr.hrplatform.models.Role
@@ -7,85 +8,119 @@ import com.fahr.hrplatform.models.requireRole
 import com.fahr.hrplatform.repository.AttendanceRepository
 import com.fahr.hrplatform.repository.EmployeeRepository
 import com.fahr.hrplatform.repository.SalaryRepository
-import com.fahr.hrplatform.routes.attendanceRoutes
-import com.fahr.hrplatform.routes.employeeRoutes
-import com.fahr.hrplatform.routes.projectRoutes
-import com.fahr.hrplatform.routes.reportRoutes
-import com.fahr.hrplatform.routes.salaryRoutes
-import com.fahr.hrplatform.routes.userRoutes
+import com.fahr.hrplatform.repository.UserRepository
+import com.fahr.hrplatform.routes.*
 import com.fahr.hrplatform.utils.DateUtil
-import io.ktor.http.HttpStatusCode
+import io.ktor.http.*
 import io.ktor.server.application.*
-import io.ktor.server.auth.authenticate
-import io.ktor.server.auth.principal
+import io.ktor.server.auth.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
 fun Application.configureRouting() {
     routing {
-        // Public authentication routes
+        // Public routes
         authRoutes()
 
-        // Routes for ADMIN role
-        route("/admin") {
-            userRoutes()
-            salaryRoutes()
-            projectRoutes()
-            reportRoutes()
-            attendanceRoutes()
-            employeeRoutes()
-        }
-        // Routes for MANAGER role
-        route("/manager") {
-            employeeRoutes()
-            attendanceRoutes()
+        // Health check
+        get("/health") {
+            call.respond(HttpStatusCode.OK, mapOf("status" to "healthy", "timestamp" to System.currentTimeMillis()))
         }
 
-        // --- NEW: Added dedicated routes for USER role ---
-        authenticate("auth-jwt") {
-            route("/user") {
-                // Route for a user to get their own attendance
-                get("/attendance") {
-                    val principal = call.principal<UserPrincipal>()
-                    if (principal == null || !principal.requireRole(Role.USER)) {
-                        call.respond(HttpStatusCode.Forbidden, mapOf("error" to "User role required"))
-                        return@get
+        // API routes with version prefix
+        route("/api/v1") {
+            authenticate("auth-jwt") {
+                // Admin routes
+                route("/admin") {
+                    intercept(ApplicationCallPipeline.Call) {
+                        val principal = call.principal<UserPrincipal>()
+                        if (principal == null || !principal.requireRole(Role.ADMIN)) {
+                            call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Admin access required"))
+                            finish()
+                        }
                     }
-
-                    val employeeRepository = EmployeeRepository()
-                    val employee = employeeRepository.findByUserId(principal.userId.toString())
-                    if (employee == null) {
-                        call.respond(HttpStatusCode.NotFound, mapOf("error" to "Employee record not found"))
-                        return@get
-                    }
-
-                    val attendanceRepository = AttendanceRepository()
-                    val records = attendanceRepository.findByEmployeeAndDateRange(
-                        employee.id,
-                        DateUtil.firstDayOfCurrentMonth, // Default to current month
-                        DateUtil.dateInUtc
-                    )
-                    call.respond(records)
+                    userRoutes()
+                    salaryRoutes()
+                    reportRoutes()
+                    employeeRoutes()
+                    attendanceRoutes()
+                    projectRoutes()
                 }
 
-                // Route for a user to get their own salary records
-                get("/salary") {
-                    val principal = call.principal<UserPrincipal>()
-                    if (principal == null || !principal.requireRole(Role.USER)) {
-                        call.respond(HttpStatusCode.Forbidden, mapOf("error" to "User role required"))
-                        return@get
+                // Manager routes
+                route("/manager") {
+                    intercept(ApplicationCallPipeline.Call) {
+                        val principal = call.principal<UserPrincipal>()
+                        if (principal == null || !principal.requireRole(Role.ADMIN, Role.MANAGER)) {
+                            call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Manager access required"))
+                            finish()
+                        }
+                    }
+                    employeeRoutes()
+                    attendanceRoutes()
+                    projectRoutes()
+                }
+
+                // User routes
+                route("/user") {
+                    intercept(ApplicationCallPipeline.Call) {
+                        val principal = call.principal<UserPrincipal>()
+                        if (principal == null) {
+                            call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Authentication required"))
+                            finish()
+                        }
                     }
 
-                    val employeeRepository = EmployeeRepository()
-                    val employee = employeeRepository.findByUserId(principal.userId.toString())
-                    if (employee == null) {
-                        call.respond(HttpStatusCode.NotFound, mapOf("error" to "Employee record not found"))
-                        return@get
+                    get("/profile") {
+                        val principal = call.principal<UserPrincipal>()!!
+                        val userRepository = UserRepository()
+                        val user = userRepository.findById(principal.userId.toString())
+
+                        if (user != null) {
+                            call.respond(mapOf(
+                                "id" to user.id,
+                                "fullName" to user.fullName,
+                                "email" to user.email,
+                                "role" to user.role
+                            ))
+                        } else {
+                            call.respond(HttpStatusCode.NotFound, mapOf("error" to "User not found"))
+                        }
                     }
 
-                    val salaryRepository = SalaryRepository()
-                    val records = salaryRepository.findByEmployee(employee.id)
-                    call.respond(records)
+                    get("/attendance") {
+                        val principal = call.principal<UserPrincipal>()!!
+                        val employeeRepository = EmployeeRepository()
+                        val employee = employeeRepository.findByUserId(principal.userId.toString())
+
+                        if (employee == null) {
+                            call.respond(HttpStatusCode.NotFound, mapOf("error" to "Employee record not found"))
+                            return@get
+                        }
+
+                        val attendanceRepository = AttendanceRepository()
+                        val records = attendanceRepository.findByEmployeeAndDateRange(
+                            employee.id,
+                            DateUtil.firstDayOfCurrentMonth,
+                            DateUtil.dateInUtc
+                        )
+                        call.respond(mapOf("attendance" to records, "employee" to employee.name))
+                    }
+
+                    get("/salary") {
+                        val principal = call.principal<UserPrincipal>()!!
+                        val employeeRepository = EmployeeRepository()
+                        val employee = employeeRepository.findByUserId(principal.userId.toString())
+
+                        if (employee == null) {
+                            call.respond(HttpStatusCode.NotFound, mapOf("error" to "Employee record not found"))
+                            return@get
+                        }
+
+                        val salaryRepository = SalaryRepository()
+                        val records = salaryRepository.findByEmployee(employee.id)
+                        call.respond(mapOf("salaryRecords" to records, "employee" to employee.name))
+                    }
                 }
             }
         }

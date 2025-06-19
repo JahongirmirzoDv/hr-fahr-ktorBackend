@@ -5,7 +5,7 @@ import com.fahr.hrplatform.models.*
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.sum
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate // FIXED: Use kotlinx.datetime instead of java.time
 
 class ReportRepository {
 
@@ -22,7 +22,7 @@ class ReportRepository {
             )
             .select {
                 (SalaryRecordTable.periodStart greaterEq startDate) and
-                (SalaryRecordTable.periodEnd lessEq endDate)
+                        (SalaryRecordTable.periodEnd lessEq endDate)
             }
             .groupBy(EmployeeTable.id, UserTable.fullName, EmployeeTable.department)
             .map {

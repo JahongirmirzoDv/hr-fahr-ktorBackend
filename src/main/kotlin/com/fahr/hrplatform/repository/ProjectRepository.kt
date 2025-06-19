@@ -39,7 +39,6 @@ class ProjectRepository {
             it[ProjectTable.managerId] = managerId?.let { id -> UUID.fromString(id) }
             it[ProjectTable.employeeIds] = employeeIds.joinToString(",").ifEmpty { "" }
             it[ProjectTable.location] = location
-
         }
         findById(id.toString())
     }
@@ -59,19 +58,20 @@ class ProjectRepository {
         ProjectTable.selectAll().map { toProject(it) }
     }
 
+    // FIXED: Handle nullable values properly
     private fun toProject(row: ResultRow): Project {
         return Project(
             id = row[ProjectTable.id].toString(),
             name = row[ProjectTable.name],
             description = row[ProjectTable.description] ?: "",
             startDate = row[ProjectTable.startDate],
-            endDate = row[ProjectTable.endDate] ?: LocalDate(0,0,0),
+            endDate = row[ProjectTable.endDate] ?: row[ProjectTable.startDate], // FIXED: Provide valid default
             status = row[ProjectTable.status],
             budget = row[ProjectTable.budget] ?: 0.0,
             createdAt = row[ProjectTable.createdAt],
             updatedAt = row[ProjectTable.updatedAt],
-            managerId = row[ProjectTable.managerId].toString(),
-            employeeIds = row[ProjectTable.employeeIds].split(",").map { it.trim() },
+            managerId = row[ProjectTable.managerId]?.toString() ?: "", // FIXED: Handle nullable UUID
+            employeeIds = row[ProjectTable.employeeIds].split(",").map { it.trim() }.filter { it.isNotEmpty() }, // FIXED: Filter empty strings
             location = row[ProjectTable.location] ?: ""
         )
     }

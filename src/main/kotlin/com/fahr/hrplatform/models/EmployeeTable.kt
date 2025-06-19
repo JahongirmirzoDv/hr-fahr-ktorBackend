@@ -15,18 +15,15 @@ enum class SalaryType {
 }
 
 object EmployeeTable : UUIDTable("employees") {
-    // REMOVED: val id = uuid("id").autoGenerate()
-    // The 'id' field is already provided by UUIDTable supertype
-
-    val userId = reference("user_id", UserTable, onDelete = ReferenceOption.CASCADE)
+    val userId = reference("user_id", UserTable, onDelete = ReferenceOption.CASCADE).uniqueIndex()
     val name = varchar("name", 255)
-    val faceEmbedding = text("face_embedding").nullable() // Storing as Base64 text
+    val faceEmbedding = text("face_embedding").nullable()
     val salaryRate = double("salary_rate").default(0.0)
     val position = varchar("position", 255)
     val department = varchar("department", 255)
     val hireDate = datetime("hire_date").default(DateUtil.datetimeInUtc)
-    val salaryType = varchar("salary_type", 20) // MONTHLY, DAILY, HOURLY
-    val salaryAmount = double("salary_amount")
+    val salaryType = varchar("salary_type", 20).default("MONTHLY")
+    val salaryAmount = double("salary_amount").default(0.0)
     val isActive = bool("is_active").default(true)
     val createdAt = datetime("created_at").default(DateUtil.datetimeInUtc)
     val updatedAt = datetime("updated_at").default(DateUtil.datetimeInUtc)
@@ -44,7 +41,7 @@ data class Employee(
     val salaryAmount: Double,
     val salaryRate: Double,
     val isActive: Boolean,
-    val faceEmbedding: String?, // Face embedding for recognition
+    val faceEmbedding: String?,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime
 )
@@ -60,7 +57,19 @@ data class EmployeeDTO(
     val salaryRate: Double? = null,
     val hireDate: LocalDateTime? = null,
     val isActive: Boolean = true
-)
+) {
+    fun validate(): List<String> {
+        val errors = mutableListOf<String>()
+
+        if (name.isBlank()) errors.add("Name cannot be empty")
+        if (position.isBlank()) errors.add("Position cannot be empty")
+        if (department.isBlank()) errors.add("Department cannot be empty")
+        if (salaryAmount <= 0) errors.add("Salary amount must be greater than 0")
+        if (salaryRate != null && salaryRate < 0) errors.add("Salary rate cannot be negative")
+
+        return errors
+    }
+}
 
 @Serializable
 data class EmployeeResponse(

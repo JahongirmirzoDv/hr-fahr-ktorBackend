@@ -4,6 +4,7 @@ package com.fahr.hrplatform
 import com.fahr.hrplatform.auth.authRoutes
 import com.fahr.hrplatform.config.DatabaseFactory
 import com.fahr.hrplatform.config.appModule
+import com.fahr.hrplatform.config.configureRouting
 import com.fahr.hrplatform.models.*
 import com.fahr.hrplatform.repository.AttendanceRepository
 import com.fahr.hrplatform.repository.EmployeeRepository
