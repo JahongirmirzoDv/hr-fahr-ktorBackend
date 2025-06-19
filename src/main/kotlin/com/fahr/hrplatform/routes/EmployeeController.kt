@@ -127,33 +127,33 @@ fun Route.employeeRoutes() {
                     }
 
                     // Check if employee with this userId already exists
-                    val existingEmployee = try {
-                        employeeRepository.findByUserId(employeeDTO.userId)
-                    } catch (e: Exception) {
-                        null // If findByUserId doesn't exist or throws exception, assume employee doesn't exist
-                    }
+//                    val existingEmployee = try {
+//                        employeeRepository.findById(employeeDTO.userId)
+//                    } catch (e: Exception) {
+//                        null // If findByUserId doesn't exist or throws exception, assume employee doesn't exist
+//                    }
 
-                    if (existingEmployee != null) {
-                        call.respond(
-                            HttpStatusCode.Conflict,
-                            mapOf("error" to "Employee with userId '${employeeDTO.userId}' already exists")
-                        )
-                        return@post
-                    }
+//                    if (existingEmployee != null) {
+//                        call.respond(
+//                            HttpStatusCode.Conflict,
+//                            mapOf("error" to "Employee with userId '${employeeDTO.userId}' already exists")
+//                        )
+//                        return@post
+//                    }
 
                     // Create the employee with the face embedding
                     val employee = try {
                         employeeRepository.create(
-                            userId = employeeDTO.userId,
+                            userId = employeeDTO.userId,           // FIXED: Now correctly positioned
+                            name = employeeDTO.name,               // FIXED: Now correctly positioned
                             position = employeeDTO.position,
                             department = employeeDTO.department,
-                            hireDate = employeeDTO.hireDate, // Use default if null
+                            hireDate = employeeDTO.hireDate ?: DateUtil.datetimeInUtc,
                             salaryType = employeeDTO.salaryType,
                             salaryAmount = employeeDTO.salaryAmount,
-                            isActive = employeeDTO.isActive,
-                            name = employeeDTO.name,
-                            faceEmbedding = embeddingBase64, // Use the generated face embedding
                             salaryRate = employeeDTO.salaryRate ?: 0.0,
+                            isActive = employeeDTO.isActive,
+                            faceEmbedding = embeddingBase64
                         )
                     } catch (e: Exception) {
                         call.respond(

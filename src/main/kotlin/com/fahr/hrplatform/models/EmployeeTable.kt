@@ -15,14 +15,12 @@ enum class SalaryType {
 }
 
 object EmployeeTable : UUIDTable("employees") {
-    val id = uuid("id").autoGenerate()
+    // REMOVED: val id = uuid("id").autoGenerate()
+    // The 'id' field is already provided by UUIDTable supertype
 
     val userId = reference("user_id", UserTable, onDelete = ReferenceOption.CASCADE)
-
     val name = varchar("name", 255)
-
     val faceEmbedding = text("face_embedding").nullable() // Storing as Base64 text
-
     val salaryRate = double("salary_rate").default(0.0)
     val position = varchar("position", 255)
     val department = varchar("department", 255)
@@ -32,41 +30,36 @@ object EmployeeTable : UUIDTable("employees") {
     val isActive = bool("is_active").default(true)
     val createdAt = datetime("created_at").default(DateUtil.datetimeInUtc)
     val updatedAt = datetime("updated_at").default(DateUtil.datetimeInUtc)
-
-
 }
 
 @Serializable
 data class Employee(
     val id: String,
-    val name: String,
-    val faceEmbedding: String?, // ADDED
-    val position: String,
-    val salaryRate: Double,
-    val salaryType: SalaryType,
-    val salaryAmount: Double,
     val userId: String,
+    val name: String,
+    val position: String,
     val department: String,
     val hireDate: LocalDateTime,
+    val salaryType: SalaryType,
+    val salaryAmount: Double,
+    val salaryRate: Double,
+    val isActive: Boolean,
+    val faceEmbedding: String?, // Face embedding for recognition
     val createdAt: LocalDateTime,
-    val updatedAt: LocalDateTime,
-    val isActive: Boolean
+    val updatedAt: LocalDateTime
 )
 
 @Serializable
 data class EmployeeDTO(
+    val userId: String,
     val name: String,
     val position: String,
-    val salaryRate: Double? = null,
+    val department: String,
     val salaryType: SalaryType,
     val salaryAmount: Double,
-    val userId: String,
-    val department: String,
-    val hireDate: LocalDateTime = DateUtil.datetimeInUtc,
-    val createdAt: LocalDateTime = DateUtil.datetimeInUtc,
-    val updatedAt: LocalDateTime = DateUtil.datetimeInUtc,
+    val salaryRate: Double? = null,
+    val hireDate: LocalDateTime? = null,
     val isActive: Boolean = true
-
 )
 
 @Serializable
@@ -80,8 +73,8 @@ data class EmployeeResponse(
     val hireDate: String,
     val salaryType: SalaryType,
     val salaryAmount: Double,
+    val salaryRate: Double?,
     val isActive: Boolean,
-    val createdAt: LocalDateTime = DateUtil.datetimeInUtc,
-    val updatedAt: LocalDateTime = DateUtil.datetimeInUtc,
-    val salaryRate: Double? = null
+    val createdAt: LocalDateTime,
+    val updatedAt: LocalDateTime
 )

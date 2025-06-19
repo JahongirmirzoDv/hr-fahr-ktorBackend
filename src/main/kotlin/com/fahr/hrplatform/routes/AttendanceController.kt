@@ -212,15 +212,26 @@ fun Route.attendanceRoutes() {
                     }
 
                     if (employee.faceEmbedding.isNullOrBlank()) {
-                        call.respond(HttpStatusCode.NotFound, mapOf("error" to "No face data registered for this employee"))
+                        call.respond(HttpStatusCode.BadRequest, mapOf(
+                            "error" to "No face data registered for this employee",
+                            "action" to "Please register the employee's face photo first"
+                        ))
                         return@post
                     }
 
                     // 2. Convert stored Base64 embedding back to a float array
                     val storedEmbedding = try {
                         faceRecognitionService.base64ToEmbedding(employee.faceEmbedding!!)
-                    } catch (e: Exception) {
-                        call.respond(HttpStatusCode.InternalServerError, mapOf("error" to "Invalid stored face data: ${e.message}"))
+                    } catch (e: RuntimeException) {
+                        // Log the error for debugging
+                        println("Error decoding face embedding for employee $employeeId: ${e.message}")
+
+                        call.respond(HttpStatusCode.BadRequest, mapOf(
+                            "error" to "Invalid face data stored for this employee",
+                            "details" to e.message,
+                            "action" to "Please re-register the employee's face photo",
+                            "employeeId" to employeeId
+                        ))
                         return@post
                     }
 
@@ -228,7 +239,11 @@ fun Route.attendanceRoutes() {
                     val verificationEmbedding = try {
                         faceRecognitionService.generateEmbedding(verificationPhotoStream!!)
                     } catch (e: Exception) {
-                        call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Failed to process verification image: ${e.message}"))
+                        call.respond(HttpStatusCode.BadRequest, mapOf(
+                            "error" to "Failed to process verification image",
+                            "details" to e.message,
+                            "action" to "Please ensure the image contains a clear face and try again"
+                        ))
                         return@post
                     }
 
@@ -239,46 +254,26 @@ fun Route.attendanceRoutes() {
                     // Log the verification attempt
                     println("Face verification attempt for employee $employeeId:")
                     println("- Similarity score: ${String.format("%.4f", similarityScore)}")
-                    println("- Recognized: $isRecognized")
-                    println("- Timestamp: ${java.time.Instant.now()}")
+                    println("- Recognition result: $isRecognized")
 
-                    if (isRecognized) {
-                        call.respond(
-                            HttpStatusCode.OK,
-                            mapOf(
-                                "message" to "Face recognized successfully",
-                                "verified" to true,
-                                "employeeId" to employeeId,
-                                "employeeName" to employee.name,
-                                "similarityScore" to String.format("%.4f", similarityScore),
-                                "timestamp" to java.time.Instant.now().toString()
-                            )
-                        )
-                    } else {
-                        call.respond(
-                            HttpStatusCode.Unauthorized,
-                            mapOf(
-                                "error" to "Face not recognized - verification failed",
-                                "verified" to false,
-                                "employeeId" to employeeId,
-                                "similarityScore" to String.format("%.4f", similarityScore),
-                                "threshold" to "0.75",
-                                "timestamp" to java.time.Instant.now().toString()
-                            )
-                        )
-                    }
+                    // 5. Respond with the verification result
+                    call.respond(HttpStatusCode.OK, mapOf(
+                        "verified" to isRecognized,
+                        "similarityScore" to String.format("%.4f", similarityScore),
+                        "threshold" to 0.75,
+                        "employeeId" to employeeId,
+                        "timestamp" to DateUtil.datetimeInUtc.toString()
+                    ))
 
                 } catch (e: Exception) {
-                    // Handle any unexpected errors
-                    call.respond(
-                        HttpStatusCode.InternalServerError,
-                        mapOf(
-                            "error" to "Internal server error during face verification: ${e.message}",
-                            "verified" to false,
-                            "timestamp" to java.time.Instant.now().toString()
-                        )
-                    )
-                    e.printStackTrace() // Log the full stack trace for debugging
+                    println("Unexpected error in face verification: ${e.message}")
+                    e.printStackTrace()
+
+                    call.respond(HttpStatusCode.InternalServerError, mapOf(
+                        "error" to "Face verification failed",
+                        "details" to "An unexpected error occurred during verification",
+                        "timestamp" to DateUtil.datetimeInUtc.toString()
+                    ))
                 }
             }
         }

@@ -45,10 +45,18 @@ class FaceRecognitionService {
                 throw IllegalArgumentException("Base64 string is empty")
             }
 
-            val byteArray = Base64.getDecoder().decode(base64String)
+            // Clean the base64 string - remove any non-base64 characters
+            val cleanBase64 = base64String.replace(Regex("[^A-Za-z0-9+/=]"), "")
+
+            // Validate Base64 format
+            if (!isValidBase64(cleanBase64)) {
+                throw IllegalArgumentException("Invalid Base64 format")
+            }
+
+            val byteArray = Base64.getDecoder().decode(cleanBase64)
 
             if (byteArray.size % 4 != 0) {
-                throw IllegalArgumentException("Invalid embedding data length")
+                throw IllegalArgumentException("Invalid embedding data length: expected multiple of 4 bytes, got ${byteArray.size}")
             }
 
             val embedding = FloatArray(byteArray.size / 4)
@@ -62,9 +70,30 @@ class FaceRecognitionService {
                 embedding[i] = Float.fromBits(bits)
             }
 
+            // Validate the resulting embedding
+            if (embedding.size != EMBEDDING_SIZE) {
+                throw IllegalArgumentException("Invalid embedding size: expected $EMBEDDING_SIZE, got ${embedding.size}")
+            }
+
             embedding
-        } catch (e: Exception) {
+        } catch (e: IllegalArgumentException) {
             throw RuntimeException("Failed to decode embedding from base64: ${e.message}", e)
+        } catch (e: Exception) {
+            throw RuntimeException("Unexpected error decoding embedding: ${e.message}", e)
+        }
+    }
+
+
+    private fun isValidBase64(base64String: String): Boolean {
+        return try {
+            // Base64 string length should be multiple of 4
+            if (base64String.length % 4 != 0) return false
+
+            // Check if it contains only valid Base64 characters
+            val base64Pattern = Regex("^[A-Za-z0-9+/]*={0,2}$")
+            base64Pattern.matches(base64String)
+        } catch (e: Exception) {
+            false
         }
     }
 
@@ -346,6 +375,10 @@ class FaceRecognitionService {
      * Encodes face embedding to base64 string for storage
      */
     fun embeddingToBase64(embedding: FloatArray): String {
+        if (embedding.size != EMBEDDING_SIZE) {
+            throw IllegalArgumentException("Invalid embedding size: expected $EMBEDDING_SIZE, got ${embedding.size}")
+        }
+
         val byteArray = embedding.flatMap { value ->
             val bits = value.toBits()
             listOf(
@@ -356,7 +389,14 @@ class FaceRecognitionService {
             )
         }.toByteArray()
 
-        return Base64.getEncoder().encodeToString(byteArray)
+        val base64String = Base64.getEncoder().encodeToString(byteArray)
+
+        // Validate the generated Base64
+        if (!isValidBase64(base64String)) {
+            throw RuntimeException("Generated invalid Base64 string")
+        }
+
+        return base64String
     }
 
     /**
