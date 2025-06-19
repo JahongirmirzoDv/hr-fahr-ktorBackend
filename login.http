@@ -52,26 +52,6 @@ GET http://localhost:8080/admin/projects
 Content-Type: application/json
 Authorization: Bearer {{bearer_token}}
 
-#####
-# @name create Employee
-POST http://localhost:8080/admin/employees
-Content-Type: application/json
-Authorization: Bearer {{bearer_token}}
-
-{
-  "name": "user",
-  "updatedAt": "2025-06-16T14:00:00",
-  "createdAt": "2025-06-16T14:00:00",
-  "department": "eshonguzar",
-  "hireDate": "2025-06-16T14:00:00",
-  "isActive": true,
-  "photoUrl": "url",
-  "position": "elektrik",
-  "salaryAmount": 500,
-  "salaryRate": 200,
-  "salaryType": "MONTHLY",
-  "userId": "2c06eab3-ba0a-4dd5-ae4d-21f49a4d8d94"
-}
 
 ###
 GET http://localhost:8080/admin/employees

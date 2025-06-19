@@ -15,6 +15,8 @@ enum class SalaryType {
 }
 
 object EmployeeTable : UUIDTable("employees") {
+    val id = uuid("id").autoGenerate()
+
     val userId = reference("user_id", UserTable, onDelete = ReferenceOption.CASCADE)
 
     val name = varchar("name", 255)
@@ -60,7 +62,7 @@ data class EmployeeDTO(
     val salaryAmount: Double,
     val userId: String,
     val department: String,
-    val hireDate: LocalDateTime? = null,
+    val hireDate: LocalDateTime = DateUtil.datetimeInUtc,
     val createdAt: LocalDateTime = DateUtil.datetimeInUtc,
     val updatedAt: LocalDateTime = DateUtil.datetimeInUtc,
     val isActive: Boolean = true

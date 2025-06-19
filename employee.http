@@ -1,0 +1,42 @@
+### Login
+# @name login
+POST http://localhost:8080/auth/login
+Content-Type: application/json
+
+{
+  "email": "test",
+  "password": "123"
+}
+
+> {% client.global.set("bearer_token", response.body.token); %}
+
+
+
+
+### Create Employee with Multipart (data + photo)
+//2025-06-16T14:00:00
+# @name createEmployee
+POST http://localhost:8080/admin/employees
+Authorization: Bearer {{bearer_token}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="data"
+
+{
+  "userId": "27e1fed6-e43c-43fc-863c-d04b27441068",
+  "position": "elektrik",
+  "department": "eshonguzar",
+  "hireDate": "2025-06-16T14:00:00",
+  "salaryType": "MONTHLY",
+  "salaryAmount": 500,
+  "salaryRate": 200,
+  "isActive": true,
+  "name": "user"
+}
+--WebAppBoundary
+Content-Disposition: form-data; name="photo"; filename="card_image.jpg"
+Content-Type: image/jpeg
+
+< src/main/resources/card_image.jpg
+--WebAppBoundary--

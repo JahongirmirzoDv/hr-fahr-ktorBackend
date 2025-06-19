@@ -1,27 +1,18 @@
 package com.fahr.hrplatform.routes
 
-import com.fahr.hrplatform.models.EmployeeDTO
-import com.fahr.hrplatform.models.EmployeeResponse
-import com.fahr.hrplatform.models.Role
-import com.fahr.hrplatform.models.UserPrincipal
-import com.fahr.hrplatform.models.requireRole
+import com.fahr.hrplatform.models.*
 import com.fahr.hrplatform.repository.EmployeeRepository
 import com.fahr.hrplatform.repository.UserRepository
 import com.fahr.hrplatform.services.FaceRecognitionService
 import com.fahr.hrplatform.utils.DateUtil
 import io.ktor.http.*
-import io.ktor.http.content.PartData
-import io.ktor.http.content.forEachPart
-import io.ktor.http.content.streamProvider
+import io.ktor.http.content.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
-import io.ktor.server.auth.jwt.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import kotlinx.serialization.json.Json
 import org.koin.ktor.ext.inject
-import java.io.InputStream
 
 fun Route.employeeRoutes() {
     val employeeRepository: EmployeeRepository by inject()
@@ -33,58 +24,199 @@ fun Route.employeeRoutes() {
         route("/employees") {
             post {
                 val principal = call.principal<UserPrincipal>()
+
                 if (principal == null || !principal.requireRole(Role.ADMIN)) {
                     call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Admin role required"))
                     return@post
                 }
 
-                var employeeDTO: EmployeeDTO? = null
-                var photoStream: InputStream? = null
+                var employeeDataMap = mutableMapOf<String, String>()
+                var photoBytes: ByteArray? = null
 
-                // Receive a multipart request
-                val multipart = call.receiveMultipart()
-                multipart.forEachPart { part ->
-                    when (part) {
-                        is PartData.FormItem -> {
-                            if (part.name == "data") {
-                                // The employee JSON data
-                                employeeDTO = Json.decodeFromString<EmployeeDTO>(part.value)
+                try {
+                    val multipart = call.receiveMultipart()
+                    multipart.forEachPart { part ->
+                        when (part) {
+                            is PartData.FormItem -> {
+                                part.name?.let { name ->
+                                    employeeDataMap[name] = part.value
+                                }
+                            }
+
+                            is PartData.FileItem -> {
+                                if (part.name == "photo") {
+                                    photoBytes = part.streamProvider().readBytes()
+                                }
+                            }
+
+                            else -> {
+                                // Ignore other part types
                             }
                         }
-                        is PartData.FileItem -> {
-                            if (part.name == "photo") {
-                                // The employee photo
-                                photoStream = part.streamProvider()
-                            }
-                        }
-                        else -> part.dispose()
+                        part.dispose()
                     }
+
+                    // Construct EmployeeDTO from the collected form data
+                    val employeeDTO = try {
+                        EmployeeDTO(
+                            userId = employeeDataMap["userId"] ?: throw IllegalArgumentException("userId is missing"),
+                            name = employeeDataMap["name"] ?: throw IllegalArgumentException("name is missing"),
+                            position = employeeDataMap["position"]
+                                ?: throw IllegalArgumentException("position is missing"),
+                            department = employeeDataMap["department"]
+                                ?: throw IllegalArgumentException("department is missing"),
+                            salaryType = SalaryType.valueOf(employeeDataMap["salaryType"] ?: ""),
+                            salaryAmount = employeeDataMap["salaryAmount"]?.toDouble()
+                                ?: throw IllegalArgumentException("salaryAmount is missing"),
+                            salaryRate = employeeDataMap["salaryRate"]?.toDouble(),
+                            isActive = employeeDataMap["isActive"]?.toBoolean()
+                                ?: throw IllegalArgumentException("isActive is missing or invalid"),
+                        )
+                    } catch (e: Exception) {
+                        call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid employee data: ${e.message}"))
+                        return@post
+                    }
+
+                    if (photoBytes == null) {
+                        call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Missing photo file"))
+                        return@post
+                    }
+
+                    // Validate image size and format
+                    if (photoBytes!!.isEmpty()) {
+                        call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Photo file is empty"))
+                        return@post
+                    }
+
+                    // Validate that the image contains a valid face (using the updated method)
+                    val isValidImage = try {
+                        faceRecognitionService.validateImageBytes(photoBytes!!)
+                    } catch (e: Exception) {
+                        call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid image format: ${e.message}"))
+                        return@post
+                    }
+
+                    if (!isValidImage) {
+                        call.respond(
+                            HttpStatusCode.BadRequest,
+                            mapOf("error" to "No valid face detected in the uploaded image or image is too small")
+                        )
+                        return@post
+                    }
+
+                    // Generate face embedding using the updated method
+                    val faceEmbedding = try {
+                        faceRecognitionService.generateEmbedding(photoBytes!!)
+                    } catch (e: Exception) {
+                        call.respond(
+                            HttpStatusCode.BadRequest,
+                            mapOf("error" to "Face registration failed: ${e.message}")
+                        )
+                        return@post
+                    }
+
+                    // Convert embedding to base64 for storage
+                    val embeddingBase64 = try {
+                        faceRecognitionService.embeddingToBase64(faceEmbedding)
+                    } catch (e: Exception) {
+                        call.respond(
+                            HttpStatusCode.InternalServerError,
+                            mapOf("error" to "Failed to encode face embedding: ${e.message}")
+                        )
+                        return@post
+                    }
+
+                    // Check if employee with this userId already exists
+                    val existingEmployee = try {
+                        employeeRepository.findByUserId(employeeDTO.userId)
+                    } catch (e: Exception) {
+                        null // If findByUserId doesn't exist or throws exception, assume employee doesn't exist
+                    }
+
+                    if (existingEmployee != null) {
+                        call.respond(
+                            HttpStatusCode.Conflict,
+                            mapOf("error" to "Employee with userId '${employeeDTO.userId}' already exists")
+                        )
+                        return@post
+                    }
+
+                    // Create the employee with the face embedding
+                    val employee = try {
+                        employeeRepository.create(
+                            userId = employeeDTO.userId,
+                            position = employeeDTO.position,
+                            department = employeeDTO.department,
+                            hireDate = employeeDTO.hireDate, // Use default if null
+                            salaryType = employeeDTO.salaryType,
+                            salaryAmount = employeeDTO.salaryAmount,
+                            isActive = employeeDTO.isActive,
+                            name = employeeDTO.name,
+                            faceEmbedding = embeddingBase64, // Use the generated face embedding
+                            salaryRate = employeeDTO.salaryRate ?: 0.0,
+                        )
+                    } catch (e: Exception) {
+                        call.respond(
+                            HttpStatusCode.InternalServerError,
+                            mapOf("error" to "Failed to create employee: ${e.message}")
+                        )
+                        return@post
+                    }
+
+                    if (employee == null) {
+                        call.respond(HttpStatusCode.InternalServerError, mapOf("error" to "Failed to create employee is null"))
+                        return@post
+                    }
+
+                    // Log successful registration
+                    println("Employee registered successfully:")
+                    println("- User ID: ${employee.userId}")
+                    println("- Name: ${employee.name}")
+                    println("- Position: ${employee.position}")
+                    println("- Department: ${employee.department}")
+                    println("- Face registered: Yes")
+                    println("- Registered by: ${principal.userId}")
+                    println("- Timestamp: ${DateUtil.datetimeInUtc}")
+
+                    call.respond(
+                        HttpStatusCode.Created,
+                        mapOf(
+                            "message" to "Employee created successfully with face registration!",
+                            "employee" to mapOf(
+                                "userId" to employee.userId,
+                                "name" to employee.name,
+                                "position" to employee.position,
+                                "department" to employee.department,
+                                "hireDate" to employee.hireDate,
+                                "salaryType" to employee.salaryType,
+                                "salaryAmount" to employee.salaryAmount,
+                                "salaryRate" to employee.salaryRate,
+                                "isActive" to employee.isActive,
+                                "faceRegistered" to true
+                            ),
+                            "registeredBy" to principal.userId,
+                            "timestamp" to DateUtil.datetimeInUtc
+                        )
+                    )
+
+                } catch (e: Exception) {
+                    // Log the error for debugging
+                    println("Error during employee registration:")
+                    println("- Error message: ${e.message}")
+                    println("- Admin user: ${principal?.userId}")
+                    println("- Timestamp: ${DateUtil.datetimeInUtc}")
+                    e.printStackTrace()
+
+                    call.respond(
+                        HttpStatusCode.InternalServerError,
+                        mapOf(
+                            "error" to "Internal server error during employee registration: ${e.message}",
+                            "timestamp" to DateUtil.datetimeInUtc
+                        )
+                    )
                 }
-
-                if (employeeDTO == null || photoStream == null) {
-                    call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Missing employee data or photo"))
-                    return@post
-                }
-
-                // Generate and encode the face embedding
-                val embedding = faceRecognitionService.generateEmbedding(photoStream!!)
-                val embeddingBase64 = faceRecognitionService.embeddingToBase64(embedding)
-
-                val dto = employeeDTO!!
-                val employee = employeeRepository.create(
-                    userId = dto.userId,
-                    position = dto.position,
-                    department = dto.department,
-                    hireDate = dto.hireDate ?: DateUtil.datetimeInUtc,
-                    salaryType = dto.salaryType,
-                    salaryAmount = dto.salaryAmount,
-                    isActive = dto.isActive,
-                    name = dto.name,
-                    faceEmbedding = embeddingBase64, // Save the new embedding
-                    salaryRate = dto.salaryRate ?: 0.0,
-                )
-                call.respond(HttpStatusCode.Created, employee.toString())
             }
+
 
             get {
                 val principal = call.principal<UserPrincipal>()
@@ -128,23 +260,28 @@ fun Route.employeeRoutes() {
 
                 val user = userRepository.findById(employee.userId)
 
-                call.respond(mapOf(
-                    "id" to employee.id,
-                    "userId" to employee.userId,
-                    "fullName" to (user?.fullName ?: ""),
-                    "email" to (user?.email ?: ""),
-                    "position" to employee.position,
-                    "department" to employee.department,
-                    "hireDate" to employee.hireDate.toString(),
-                    "salaryType" to employee.salaryType,
-                    "salaryAmount" to employee.salaryAmount,
-                    "isActive" to employee.isActive
-                ))
+                call.respond(
+                    mapOf(
+                        "id" to employee.id,
+                        "userId" to employee.userId,
+                        "fullName" to (user?.fullName ?: ""),
+                        "email" to (user?.email ?: ""),
+                        "position" to employee.position,
+                        "department" to employee.department,
+                        "hireDate" to employee.hireDate.toString(),
+                        "salaryType" to employee.salaryType,
+                        "salaryAmount" to employee.salaryAmount,
+                        "isActive" to employee.isActive
+                    )
+                )
             }
 
             // New function to get employees by department
             get("/department/{departmentName}") {
-                val departmentName = call.parameters["departmentName"] ?: return@get call.respond(HttpStatusCode.BadRequest, "Missing department name")
+                val departmentName = call.parameters["departmentName"] ?: return@get call.respond(
+                    HttpStatusCode.BadRequest,
+                    "Missing department name"
+                )
                 val principal = call.principal<UserPrincipal>()!!
 
                 if (!principal.requireRole(Role.ADMIN, Role.MANAGER)) {

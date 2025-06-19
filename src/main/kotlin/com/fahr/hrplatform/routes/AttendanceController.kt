@@ -167,43 +167,118 @@ fun Route.attendanceRoutes() {
             // THIS IS THE NEW /verify-face ROUTE
             post("/verify-face") {
                 var employeeId: String? = null
-                var verificationPhotoStream: InputStream? = null
+                var verificationPhotoStream: ByteArray? = null
 
-                // Receive multipart data (employeeId and the verification image)
-                val multipart = call.receiveMultipart()
-                multipart.forEachPart { part ->
-                    when (part) {
-                        is PartData.FormItem -> if (part.name == "employeeId") employeeId = part.value
-                        is PartData.FileItem -> if (part.name == "image") verificationPhotoStream = part.streamProvider()
-                        else -> part.dispose()
+                try {
+                    // Receive multipart data (employeeId and the verification image)
+                    val multipart = call.receiveMultipart()
+                    multipart.forEachPart { part ->
+                        when (part) {
+                            is PartData.FormItem -> {
+                                if (part.name == "employeeId") {
+                                    employeeId = part.value
+                                }
+                            }
+                            is PartData.FileItem -> {
+                                if (part.name == "image") {
+                                    verificationPhotoStream = part.streamProvider().readBytes()
+                                }
+                            }
+                            else -> {
+                                // Ignore other part types
+                            }
+                        }
+                        part.dispose() // Always dispose parts
                     }
-                }
 
-                if (employeeId == null || verificationPhotoStream == null) {
-                    call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Missing employeeId or image"))
-                    return@post
-                }
+                    // Validate input parameters
+                    if (employeeId.isNullOrBlank()) {
+                        call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Employee ID is required"))
+                        return@post
+                    }
 
-                // 1. Fetch the stored employee record
-                val employee = employeeRepository.findById(employeeId!!)
-                if (employee?.faceEmbedding == null) {
-                    call.respond(HttpStatusCode.NotFound, mapOf("error" to "Employee not found or no face data registered"))
-                    return@post
-                }
+                    if (verificationPhotoStream == null || verificationPhotoStream!!.isEmpty()) {
+                        call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Verification image is required"))
+                        return@post
+                    }
 
-                // 2. Convert stored Base64 embedding back to a float array
-                val storedEmbedding = faceRecognitionService.base64ToEmbedding(employee.faceEmbedding)
+                    // Initialize face recognition service
 
-                // 3. Generate a new embedding from the live verification photo
-                val verificationEmbedding = faceRecognitionService.generateEmbedding(verificationPhotoStream!!)
+                    // 1. Fetch the stored employee record
+                    val employee = employeeRepository.findById(employeeId!!)
+                    if (employee == null) {
+                        call.respond(HttpStatusCode.NotFound, mapOf("error" to "Employee not found"))
+                        return@post
+                    }
 
-                // 4. Compare the two embeddings
-                val isRecognized = faceRecognitionService.areSimilar(storedEmbedding, verificationEmbedding)
+                    if (employee.faceEmbedding.isNullOrBlank()) {
+                        call.respond(HttpStatusCode.NotFound, mapOf("error" to "No face data registered for this employee"))
+                        return@post
+                    }
 
-                if (isRecognized) {
-                    call.respond(HttpStatusCode.OK, mapOf("message" to "Face recognized successfully", "verified" to true))
-                } else {
-                    call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Face not recognized", "verified" to false))
+                    // 2. Convert stored Base64 embedding back to a float array
+                    val storedEmbedding = try {
+                        faceRecognitionService.base64ToEmbedding(employee.faceEmbedding!!)
+                    } catch (e: Exception) {
+                        call.respond(HttpStatusCode.InternalServerError, mapOf("error" to "Invalid stored face data: ${e.message}"))
+                        return@post
+                    }
+
+                    // 3. Generate a new embedding from the live verification photo
+                    val verificationEmbedding = try {
+                        faceRecognitionService.generateEmbedding(verificationPhotoStream!!)
+                    } catch (e: Exception) {
+                        call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Failed to process verification image: ${e.message}"))
+                        return@post
+                    }
+
+                    // 4. Compare the two embeddings
+                    val isRecognized = faceRecognitionService.areSimilar(storedEmbedding, verificationEmbedding)
+                    val similarityScore = faceRecognitionService.getSimilarityScore(storedEmbedding, verificationEmbedding)
+
+                    // Log the verification attempt
+                    println("Face verification attempt for employee $employeeId:")
+                    println("- Similarity score: ${String.format("%.4f", similarityScore)}")
+                    println("- Recognized: $isRecognized")
+                    println("- Timestamp: ${java.time.Instant.now()}")
+
+                    if (isRecognized) {
+                        call.respond(
+                            HttpStatusCode.OK,
+                            mapOf(
+                                "message" to "Face recognized successfully",
+                                "verified" to true,
+                                "employeeId" to employeeId,
+                                "employeeName" to employee.name,
+                                "similarityScore" to String.format("%.4f", similarityScore),
+                                "timestamp" to java.time.Instant.now().toString()
+                            )
+                        )
+                    } else {
+                        call.respond(
+                            HttpStatusCode.Unauthorized,
+                            mapOf(
+                                "error" to "Face not recognized - verification failed",
+                                "verified" to false,
+                                "employeeId" to employeeId,
+                                "similarityScore" to String.format("%.4f", similarityScore),
+                                "threshold" to "0.75",
+                                "timestamp" to java.time.Instant.now().toString()
+                            )
+                        )
+                    }
+
+                } catch (e: Exception) {
+                    // Handle any unexpected errors
+                    call.respond(
+                        HttpStatusCode.InternalServerError,
+                        mapOf(
+                            "error" to "Internal server error during face verification: ${e.message}",
+                            "verified" to false,
+                            "timestamp" to java.time.Instant.now().toString()
+                        )
+                    )
+                    e.printStackTrace() // Log the full stack trace for debugging
                 }
             }
         }

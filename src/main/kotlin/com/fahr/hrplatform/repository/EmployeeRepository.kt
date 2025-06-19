@@ -5,12 +5,13 @@ import com.fahr.hrplatform.models.*
 import com.fahr.hrplatform.utils.DateUtil
 import kotlinx.datetime.LocalDateTime
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.statements.api.ExposedBlob
+import java.sql.Blob
 import java.util.*
 
 class EmployeeRepository {
 
     suspend fun create(
-        userId: String,
         name: String,
         salaryRate: Double,
         position: String,
@@ -26,7 +27,6 @@ class EmployeeRepository {
 
         EmployeeTable.insert {
             it[EmployeeTable.id] = id
-            it[EmployeeTable.userId] = UUID.fromString(userId)
             it[EmployeeTable.position] = position
             it[EmployeeTable.department] = department
             it[EmployeeTable.hireDate] = hireDate
@@ -36,6 +36,7 @@ class EmployeeRepository {
             it[createdAt] = now
             it[updatedAt] = now
             it[EmployeeTable.name] = name
+            // CHANGE: Store the Base64 string directly
             it[EmployeeTable.faceEmbedding] = faceEmbedding
             it[EmployeeTable.salaryRate] = salaryRate
         }

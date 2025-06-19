@@ -43,7 +43,13 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion")
 
 
-    implementation("io.ktor:ktor-server-status-pages-jvm:${ktorVersion}")
+//    implementation("io.ktor:ktor-server-partial-content-jvm:$ktorVersion")
+//    implementation("io.ktor:ktor-server-auto-head-response-jvm:$ktorVersion")
+//
+//    // For multipart data
+//    implementation("io.ktor:ktor-server-multipart-jvm:$ktorVersion")
+//
+    implementation("io.ktor:ktor-server-status-pages-jvm:$ktorVersion")
 
 //    implementation(platform("org.jetbrains.kotlinx:kotlinx-serialization-bom:$kotlinVersion"))
 //    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json")
@@ -60,24 +66,22 @@ dependencies {
 
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.0")
 
+    implementation("org.bytedeco:javacv-platform:1.5.10")
+
+//    implementation("java.awt:java.awt.image:1.0")
 
 
-    // Add DJL dependencies for Face Recognition
-    implementation("ai.djl:api:0.31.1")
-    implementation("ai.djl:model-zoo:0.31.1")
-    // Use the ONNX Runtime engine
-    implementation("ai.djl.onnxruntime:onnxruntime-engine:0.31.1")
-    // Native library for your OS. For production, you might need others.
-    // This is for macOS with an ARM processor (like M1/M2/M3).
-    // implementation("ai.djl.onnxruntime:onnxruntime-native-mkl:0.27.0-mac-aarch64")
-    // For Linux x86_64:
-//    implementation("ai.djl.onnxruntime:onnxruntime-native-mkl:0.27.0-linux-x86_64")
-    // For Windows x86_64:
-    // implementation("ai.djl.onnxruntime:onnxruntime-native-mkl:0.27.0-win-x86_64")
+//    implementation("ai.djl:api:0.26.0")
+//    implementation("ai.djl.pytorch:pytorch-engine:0.26.0")
+//    runtimeOnly("ai.djl.pytorch:pytorch-native-cpu:0.26.0")
+//    implementation("ai.djl.onnxruntime:onnxruntime-engine:0.26.0")
+//
+//    // REMOVE or COMMENT OUT the mxnet-model-zoo if it's not needed
+//    // implementation("ai.djl.mxnet:mxnet-model-zoo:0.26.0")
+//
+//    // ADD the PyTorch model zoo
+//    implementation("ai.djl.pytorch:pytorch-model-zoo:0.26.0")
 
-    // For image manipulation
-    implementation("org.imgscalr:imgscalr-lib:4.2")
-//    implementation("java.xml.bind:jaxb-api:2.3.1")
 
 
     implementation("at.favre.lib:bcrypt:0.9.0")

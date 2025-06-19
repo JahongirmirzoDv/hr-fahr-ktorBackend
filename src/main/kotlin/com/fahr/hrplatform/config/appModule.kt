@@ -15,4 +15,5 @@ val appModule = module {
     single { ReportRepository() }
     single { SalaryService(get(), get()) } // Add this line
     single { FaceRecognitionService() } // Add this line
+
 }
