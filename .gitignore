@@ -24,7 +24,7 @@ bin/
 out/
 !**/src/main/**/out/
 !**/src/test/**/out/
-uploads/
+requests/
 
 ### NetBeans ###
 /nbproject/private/

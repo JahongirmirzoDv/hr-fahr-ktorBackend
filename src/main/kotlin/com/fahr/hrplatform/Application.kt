@@ -1,25 +1,15 @@
 package com.fahr.hrplatform
 
 
-import com.fahr.hrplatform.auth.authRoutes
 import com.fahr.hrplatform.config.DatabaseFactory
 import com.fahr.hrplatform.config.appModule
-import com.fahr.hrplatform.config.configureRouting
 import com.fahr.hrplatform.models.*
-import com.fahr.hrplatform.repository.AttendanceRepository
-import com.fahr.hrplatform.repository.EmployeeRepository
-import com.fahr.hrplatform.repository.SalaryRepository
-import com.fahr.hrplatform.routes.*
 import com.fahr.hrplatform.security.configureSecurity
-import com.fahr.hrplatform.utils.DateUtil
 import io.ktor.http.*
 import io.ktor.server.application.*
-import io.ktor.server.auth.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.cors.routing.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.koin.core.context.GlobalContext.startKoin

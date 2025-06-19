@@ -10,6 +10,7 @@ import com.fahr.hrplatform.repository.EmployeeRepository
 import com.fahr.hrplatform.repository.SalaryRepository
 import com.fahr.hrplatform.repository.UserRepository
 import com.fahr.hrplatform.services.SalaryService
+import com.fahr.hrplatform.utils.ApiErrorResponse
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -29,17 +30,21 @@ fun Route.salaryRoutes() {
             get {
                 val principal = call.principal<UserPrincipal>()
                 if (principal == null || !principal.requireRole(Role.ADMIN, Role.MANAGER)) {
-                    call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Admin or Manager role required"))
+                    call.respond(HttpStatusCode.Forbidden, ApiErrorResponse("Admin or Manager role required"))
                     return@get
                 }
 
-                val employeeId = call.request.queryParameters["employeeId"]
-                val salaryRecords = if (employeeId != null) {
-                    salaryRepository.findByEmployee(employeeId)
-                } else {
-                    salaryRepository.findAll()
+                try {
+                    val employeeId = call.request.queryParameters["employeeId"]
+                    val salaryRecords = if (employeeId != null) {
+                        salaryRepository.findByEmployee(employeeId)
+                    } else {
+                        salaryRepository.findAll()
+                    }
+                    call.respond(HttpStatusCode.OK, salaryRecords)
+                } catch (e: Exception) {
+                    call.respond(HttpStatusCode.BadRequest, ApiErrorResponse(e.message ?: "Unknown error"))
                 }
-                call.respond(salaryRecords)
             }
 
             get("/history/{employeeId}") {

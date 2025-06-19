@@ -1,4 +1,5 @@
 package com.fahr.hrplatform.utils
+
 import kotlinx.datetime.*
 
 /**
@@ -41,4 +42,18 @@ object DateUtil {
                 .plus(1, DateTimeUnit.MONTH)
                 .minus(1, DateTimeUnit.DAY)
         }
+
+    val year: Int
+        get() = dateInUtc.year
+
+    val month: Int
+        get() = dateInUtc.monthNumber
+
+    fun yearMonth(dayOfMonth: Int, lastDayOfMonth: Boolean = false): LocalDate {
+        return if (lastDayOfMonth) {
+            LocalDate(year, month, lastDayOfCurrentMonth.dayOfMonth)
+        } else {
+            LocalDate(year, month, dayOfMonth)
+        }
+    }
 }

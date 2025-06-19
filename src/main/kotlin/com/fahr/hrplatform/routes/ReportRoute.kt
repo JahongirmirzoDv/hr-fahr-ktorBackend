@@ -5,15 +5,15 @@ import com.fahr.hrplatform.models.Role
 import com.fahr.hrplatform.models.UserPrincipal
 import com.fahr.hrplatform.models.requireRole
 import com.fahr.hrplatform.repository.ReportRepository
+import com.fahr.hrplatform.utils.DateUtil
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.datetime.LocalDate
 import org.koin.ktor.ext.inject
-import java.time.LocalDate
-import java.time.YearMonth
 
 fun Route.reportRoutes() {
     val reportRepository: ReportRepository by inject()
@@ -28,18 +28,18 @@ fun Route.reportRoutes() {
                     return@get
                 }
 
-                val year = call.request.queryParameters["year"]?.toIntOrNull() ?: LocalDate.now().year
-                val month = call.request.queryParameters["month"]?.toIntOrNull() ?: LocalDate.now().monthValue
+                val year = call.request.queryParameters["year"]?.toIntOrNull() ?: DateUtil.year
+                val month = call.request.queryParameters["month"]?.toIntOrNull() ?: DateUtil.month
 
-                val yearMonth = YearMonth.of(year, month)
-                val startDate = yearMonth.atDay(1)
-                val endDate = yearMonth.atEndOfMonth()
 
-                val summaries = reportRepository.getMonthlySummary(startDate, endDate)
+                val summaries = reportRepository.getMonthlySummary(
+                    DateUtil.yearMonth(1),
+                    DateUtil.yearMonth(1, lastDayOfMonth = true)
+                )
 
                 val report = MonthlyReport(
-                    reportDate = LocalDate.now().toString(),
-                    period = yearMonth.toString(),
+                    reportDate = DateUtil.datetimeInUtc.toString(),
+                    period = "$year-$month",
                     summaries = summaries
                 )
 
